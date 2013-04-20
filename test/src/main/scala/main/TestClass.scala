@@ -1,9 +1,7 @@
 package main
 
-import javax.ws.rs.GET
+import javax.ws.rs.{DefaultValue, GET, FormParam, QueryParam}
 
-import javax.ws.rs.FormParam
-import javax.ws.rs.QueryParam
 
 /**
  * @author Bryce Anderson
@@ -25,5 +23,5 @@ class TestClass {
 
 class TestClass2 {
   @GET
-  def routeOne(bar: String, @QueryParam("query") query: String) = s"routeOne: bar = $bar, query = $query"
+  def routeOne(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int) = s"routeOne: bar = $bar, query = $query"
 }

@@ -9,8 +9,8 @@ object Main {
   def main(args: Array[String]) {
     println("Hello world")
     val annHandler = new AnnotationHandler
-    annHandler.bindClass[TestClass]("foo/:bar/cats")
-    .bindClass[TestClass2]("testclass2/:bar/cats")
+    annHandler.mapClass[TestClass]("foo/:bar/cats")
+    .mapClass[TestClass2]("testclass2/:bar/cats")
 
     val server = new Server(8080)
     val a = new AbstractHandler {

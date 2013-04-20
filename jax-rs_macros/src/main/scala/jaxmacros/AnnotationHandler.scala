@@ -4,7 +4,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.server.Request
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import scala.collection.mutable.MutableList
-import scala.util.matching.Regex
 
 import scala.language.experimental.macros
 
@@ -40,5 +39,5 @@ class AnnotationHandler extends AbstractHandler with Route { self =>
     case "GET" => getRoutes += route; self
   }
 
-  def bindClass[A](path: String) = macro RouteBinding.bindClass_impl[A]
+  def mapClass[A](path: String) = macro RouteBinding.bindClass_impl[A]
 }

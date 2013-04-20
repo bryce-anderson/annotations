@@ -76,17 +76,17 @@ object RouteBinding {
       val constructorParamsTree: List[List[Tree]] = sym.paramss.map(_.map(_ match {
         case p if pathParams.exists(_ == p.name.decoded) =>
           val index = LIT(pathParamNames.indexOf(p.name.decoded))
-          reify(resultExpr.splice.group(index.splice + 1)).tree
+          primConvert(reify(resultExpr.splice.group(index.splice + 1)), p.typeSignature).tree
 
         case p if queryParams.exists(_ == p.name.decoded) =>
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
           val defaultExpr = p.annotations.find(_.tpe == typeOf[DefaultValue])
             .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
-            .map(LIT(_))
+            .map(PRIM(_, p.typeSignature))
             .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(queryKey).splice}")))
 
-          reify(queryExpr.splice.get(LIT(queryKey).splice).getOrElse(defaultExpr.splice)).tree
+          reify(queryExpr.splice.get(LIT(queryKey).splice).map(primConvert(p.typeSignature).splice).getOrElse(defaultExpr.splice)).tree
 
 
         case p => ??? // TODO: need query and form support
