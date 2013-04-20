@@ -15,7 +15,7 @@ class TestClass {
 //  @GET
 //  def routeOne() = "route one"
 //
-//  @GET
+//  @POST
 //  def routeTwo(bar: String, @FormParam("name") name: String) = s"The route received the name $name"
 
   @GET

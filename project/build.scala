@@ -10,7 +10,8 @@ object BuildSettings {
     scalaVersion := "2.10.1",
     scalacOptions ++= Seq(),
     libraryDependencies += "javax.ws.rs" % "jsr311-api" % "1.1.1",
-    libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417"
+    libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417",
+    libraryDependencies += "org.scalatra.rl" %% "rl" % "0.4.2"
   )
 }
 
