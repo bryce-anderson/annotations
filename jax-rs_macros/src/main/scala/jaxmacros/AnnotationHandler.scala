@@ -12,18 +12,21 @@ import scala.language.experimental.macros
  * @author Bryce Anderson
  *         Created on 4/19/13 at 11:40 AM
  */
-class AnnotationHandler extends AbstractHandler { self =>
+class AnnotationHandler extends AbstractHandler with Route { self =>
 
   private val getRoutes = new MutableList[Route]()
 
   // Virtual method of AbstractHandler
-  override def handle(target: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) {
+  override def handle(target: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) =
+    baseRequest.setHandled(handle(req, resp))
 
-    def searchList(it: Iterator[Route]): Unit = {
+  def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
+
+    def searchList(it: Iterator[Route]): Boolean = {
       if (it.hasNext) {
-        if (it.next.handle(req, resp))  baseRequest.setHandled(true)
+        if (it.next.handle(req, resp))  true
         else searchList(it)
-      } else {/* Do nothing, let jetty deal with missing route. */}
+      } else false
     }
 
     req.getMethod() match {

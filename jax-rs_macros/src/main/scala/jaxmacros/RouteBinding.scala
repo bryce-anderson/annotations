@@ -2,11 +2,9 @@ package jaxmacros
 
 import language.experimental.macros
 import scala.reflect.macros.Context
-import javax.ws.rs.{GET, POST, DELETE, PUT, FormParam, QueryParam}
+import javax.ws.rs.{GET, POST, DELETE, PUT, FormParam, QueryParam, DefaultValue}
 import scala.util.matching.Regex
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-
-import rl.UrlCodingUtils
 
 
 /**
@@ -66,6 +64,8 @@ object RouteBinding {
       val respExpr = c.Expr[HttpServletResponse](Ident(newTermName(respName)))
       val resultName = "results"
       val resultExpr = c.Expr[Regex.Match](Ident(newTermName(resultName)))
+      val queryName = "queryParams"
+      val queryExpr = c.Expr[Map[String, String]](Ident(newTermName(queryName)))
 
       if (pathParamNames.sorted != pathParams.sorted)
         c.error(c.enclosingPosition,
@@ -75,10 +75,21 @@ object RouteBinding {
 
       val constructorParamsTree: List[List[Tree]] = sym.paramss.map(_.map(_ match {
         case p if pathParams.exists(_ == p.name.decoded) =>
-          val index = c.Expr[Int](Literal(Constant(pathParamNames.indexOf(p.name.decoded))))
+          val index = LIT(pathParamNames.indexOf(p.name.decoded))
           reify(resultExpr.splice.group(index.splice + 1)).tree
 
-        case _ => ??? // TODO: need query and form support
+        case p if queryParams.exists(_ == p.name.decoded) =>
+          val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
+            .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
+          val defaultExpr = p.annotations.find(_.tpe == typeOf[DefaultValue])
+            .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
+            .map(LIT(_))
+            .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(queryKey).splice}")))
+
+          reify(queryExpr.splice.get(LIT(queryKey).splice).getOrElse(defaultExpr.splice)).tree
+
+
+        case p => ??? // TODO: need query and form support
       }))
 
       // TODO: add class constructor support
@@ -88,22 +99,22 @@ object RouteBinding {
       val strExpr = c.Expr[String](routeTree)
 
       reify {
+        val pathRegex = LIT(regex).splice.r
         new Route {
-          val pathRegex = c.Expr[String](Literal(Constant(regex))).splice.r
-
-          def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
+          def handle( req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
             val path = req.getPathInfo
+            lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
 
             pathRegex.findFirstMatchIn(path) match {
               case None => false
-              case Some(results) => // Should have a RegexMatch of the results to bind.
-//                resp.getWriter().append(s"Route matched: $path")
-//                println(results.groupCount)
-//                (0 to results.groupCount) foreach { i =>
-//                  resp.getWriter().append(s"Match: ${results.group(i)}\n")
-//                }
-
-                resp.getWriter().write(strExpr.splice)
+              case Some(results) => // Should have a RegexMatch of the results to bind
+                try {
+                  resp.getWriter().write(strExpr.splice)
+                } catch {
+                  case t: Throwable =>
+                    t.printStackTrace()// TODO: handle error
+                    throw t
+                }
 
                 true
             }

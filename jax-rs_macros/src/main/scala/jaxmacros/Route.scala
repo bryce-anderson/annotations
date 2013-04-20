@@ -9,7 +9,6 @@ import scala.util.matching.Regex
  */
 
 trait Route {
-  def pathRegex: Regex
   def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean
 }
 

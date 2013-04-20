@@ -22,3 +22,8 @@ class TestClass {
   def  routeThree(bar: String) = s"The route received $bar"
 
 }
+
+class TestClass2 {
+  @GET
+  def routeOne(bar: String, @QueryParam("query") query: String) = s"routeOne: bar = $bar, query = $query"
+}

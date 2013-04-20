@@ -16,4 +16,6 @@ class Helpers[C <: Context](val c1: C) {
     case _                                => Ident(t.typeSymbol.name)
   }
 
+  def LIT[A](in: A) = c1.Expr[A](Literal(Constant(in)))
+
 }
