@@ -9,7 +9,7 @@ object Main {
   def main(args: Array[String]) {
     println("Hello world")
     val annHandler = new AnnotationHandler
-    annHandler.bindClass[TestClass]("foo/:bar/:world/cats")
+    annHandler.bindClass[TestClass]("foo/:bar/cats")
 
     val server = new Server(8080)
     val a = new AbstractHandler {

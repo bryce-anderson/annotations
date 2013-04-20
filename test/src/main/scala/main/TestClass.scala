@@ -2,17 +2,23 @@ package main
 
 import javax.ws.rs.GET
 
+import javax.ws.rs.FormParam
+import javax.ws.rs.QueryParam
+
 /**
- * @author brycea
+ * @author Bryce Anderson
  *         Created on 4/18/13 at 2:46 PM
  */
 
 class TestClass {
 
-  @GET
-  def routeOne() = "route one"
+//  @GET
+//  def routeOne() = "route one"
+//
+//  @GET
+//  def routeTwo(bar: String, @FormParam("name") name: String) = s"The route received the name $name"
 
   @GET
-  def routeTwo(name: String) = s"The route received the name $name"
+  def  routeThree(bar: String) = s"The route received $bar"
 
 }
