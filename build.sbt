@@ -1,4 +1,4 @@
-name := "hello"
+name := "annotations"
 
 version := "0.1"
 

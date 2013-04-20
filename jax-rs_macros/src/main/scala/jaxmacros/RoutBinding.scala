@@ -10,15 +10,15 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  * @author Bryce Anderson
  *         Created on 4/18/13 at 2:48 PM
  */
-object RoutBinding {
+object RouteBinding {
 
-  type RouteContext = Context { type PrefixType = AnnotationHandler}
+  type RouteContext = Context { type PrefixType = AnnotationHandler }
 
   def bindClass[A](path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: RouteContext)(path: c.Expr[String]) :c.Expr[AnnotationHandler] = {
     import c.universe._
 
-    val (regexString, params) = path.tree match {
+    val (regexString: String, params: List[String]) = path.tree match {
       // need to get a regex and a list of param names.
       case Literal(Constant(pathString: String)) =>
         println(s"Found path: $pathString")
@@ -33,10 +33,12 @@ object RoutBinding {
 
     val tpe = weakTypeOf[A]
     val restMethods = tpe.members
-      .filter(m => m.isMethod && m.asMethod.annotations.length > 0)
+      .collect{ case m: MethodSymbol if m.asMethod.annotations.length > 0 => m}
       .filter(m => m.asMethod.annotations.exists(a => methodTypes.exists(_ =:= a.tpe)))
+      .toList
 
-    def buildClassRoute(sym: MethodSymbol, regex: String, pathNames: Set[String]): c.Expr[Route] = {
+
+    def buildClassRoute(sym: MethodSymbol, regex: String, pathNames: List[String]): c.Expr[Route] = {
       val reqName = "req"
       val reqExpr = c.Expr[HttpServletRequest](Ident(newTermName(reqName)))
       val respName = "resp"
@@ -47,7 +49,8 @@ object RoutBinding {
           val pathRegex = c.Expr[String](Literal(Constant(regex))).splice.r
 
           def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
-            val path = req.getContextPath + req.getServletPath
+            req.getPathInfo
+            val path = req.getPathInfo
 
             pathRegex.findFirstMatchIn(path) match {
               case None => false
@@ -68,8 +71,9 @@ object RoutBinding {
     for (m <- restMethods) {
       println(s"Method named: ${m.name} found with annotations '${m.annotations}'")
     }
+    restMethods.head
     reify {
-      c.prefix.splice.addRoute("GET", buildClassRoute(???, ???, ???).splice)
+      c.prefix.splice.addRoute("GET", buildClassRoute(restMethods.head, regexString, params).splice)
     }
   }
 

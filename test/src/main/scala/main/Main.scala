@@ -20,11 +20,11 @@ object Main {
       }
     }
 
-    server.setHandler(a)
+    server.setHandler(annHandler)
 
-    //server.start()
+    server.start()
     // server.stop()
-    //server.join()
+    server.join()
 
   }
 }

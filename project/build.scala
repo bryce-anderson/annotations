@@ -1,6 +1,8 @@
 import sbt._
 import Keys._
 
+import spray.revolver.RevolverPlugin._
+
 object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.scalamacros",
@@ -25,6 +27,6 @@ object MyBuild extends Build {
   lazy val test: Project = Project(
     "test",
     file("test"),
-    settings = buildSettings
+    settings = buildSettings ++ Revolver.settings
   ) dependsOn(macros)
 }

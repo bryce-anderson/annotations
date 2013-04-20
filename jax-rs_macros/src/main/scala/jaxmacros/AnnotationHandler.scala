@@ -17,19 +17,25 @@ class AnnotationHandler extends AbstractHandler { self =>
   private val getRoutes = new MutableList[Route]()
 
   def handle(target: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) {
-    var regexResults: Option[Regex.Match] = None
-    val path = req.getContextPath + req.getServletPath
+
+    def searchList(it: Iterator[Route]): Unit = {
+      if (it.hasNext) {
+        if (it.next.handle(req, resp))  baseRequest.setHandled(true)
+        else searchList(it)
+      } else {/* Do nothing, let jetty deal with it. */}
+    }
 
     req.getMethod() match {
-      case "GET" => getRoutes.find(_.handle(req, resp))
+      case "GET" => searchList(getRoutes.iterator)
 
       case x => throw new NotImplementedError(s"Method type $x not implemented")
     }
+    baseRequest.setHandled(true)
   }
 
   def addRoute(method: String, route: Route): self.type = method match {
     case "GET" => getRoutes += route; self
   }
 
-  def bindClass[A](path: String) = macro RoutBinding.bindClass_impl[A]
+  def bindClass[A](path: String) = macro RouteBinding.bindClass_impl[A]
 }
