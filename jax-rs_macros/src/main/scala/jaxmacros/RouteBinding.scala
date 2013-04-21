@@ -13,14 +13,16 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 object RouteBinding {
 
-  type RouteContext = Context { type PrefixType = AnnotationHandler }
+  def bindClass[A](handler: AnnotationHandler, path: String) = macro bindClass_impl[A]
+  def bindClass_impl[A: c.WeakTypeTag](c: Context)
+               (handler: c.Expr[AnnotationHandler], path: c.Expr[String]) :c.Expr[AnnotationHandler] = {
 
-  def bindClass[A](path: String) = macro bindClass_impl[A]
-  def bindClass_impl[A: c.WeakTypeTag](c: RouteContext)(path: c.Expr[String]) :c.Expr[AnnotationHandler] = {
     import c.universe._
 
     val helpers = new macrohelpers.Helpers[c.type ](c)
     import helpers._
+
+    val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
     val (regexString: String, params: List[String]) = path.tree match {
       // need to get a regex and a list of param names.
@@ -30,12 +32,12 @@ object RouteBinding {
       case _ => c.error(c.enclosingPosition, "Route path must be a literal constant.")
     }
 
-    val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
-
     val tpe = weakTypeOf[A]
 
     val restMethods = tpe.members.collect{ case m: MethodSymbol
-        if m.annotations.exists(a => methodTypes.exists(_ =:= a.tpe)) => m }.toList
+        if m.annotations.exists(a => methodTypes.exists(_ =:= a.tpe)) => m }
+      .map(m => (m, m.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).head.tpe))
+      .toList
 
     println(s"DEBUG: Found path params: $params")
     println(s"DEBUG: Found regex string: $regexString")
@@ -45,6 +47,9 @@ object RouteBinding {
     // pathParamNames needs to be in the order found by the regex. Will use it to get regex indexes
     def buildClassRoute(sym: MethodSymbol, regex: String, pathParamNames: List[String]): c.Expr[Route] = {
 
+      if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
+        c.error(c.enclosingPosition, s"Method ${sym.name.decoded} has more than one REST annotation.")
+
       val pathParams = sym.paramss.map(_.filter { param =>
         println(s"Params: ${param.name} with annotations: ${param.annotations}")
         !param.annotations.exists(a => (a.tpe =:= typeOf[FormParam] || a.tpe =:= typeOf[QueryParam]) )
@@ -53,6 +58,9 @@ object RouteBinding {
       val formParams = sym.paramss.map(_.filter { param =>
         param.annotations.exists(_.tpe =:= typeOf[FormParam])
       }.map(_.name.decoded)).flatten
+
+      if (!sym.annotations.exists(_.tpe == typeOf[POST]) && formParams.length > 0)
+        c.error(c.enclosingPosition, s"Method '${sym.name.decoded}' has POST params but is not a POST request.")
 
       val queryParams = sym.paramss.map(_.filter { param =>
         param.annotations.exists(_.tpe =:= typeOf[QueryParam])
@@ -81,15 +89,21 @@ object RouteBinding {
         case p if queryParams.exists(_ == p.name.decoded) =>
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
-          val defaultExpr = p.annotations.find(_.tpe == typeOf[DefaultValue])
-            .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
-            .map(PRIM(_, p.typeSignature))
-            .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(queryKey).splice}")))
+          val defaultExpr = getDefaultParamExpr(p, queryKey)
 
-          reify(queryExpr.splice.get(LIT(queryKey).splice).map(primConvert(p.typeSignature).splice).getOrElse(defaultExpr.splice)).tree
+          reify(queryExpr.splice.get(LIT(queryKey).splice)
+            .map(primConvert(p.typeSignature).splice)
+            .getOrElse(defaultExpr.splice)).tree
 
 
-        case p => ??? // TODO: need query and form support
+        case p if formParams.exists(_ == p.name.decoded) =>
+          val formKey = p.annotations.find(_.tpe == typeOf[FormParam])
+            .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
+          val defaultExpr = getDefaultParamExpr(p, formKey)
+
+          reify(Option(reqExpr.splice.getParameter(LIT(formKey).splice))
+              .map(primConvert(p.typeSignature).splice)
+              .getOrElse(defaultExpr.splice)).tree
       }))
 
       // TODO: add class constructor support
@@ -123,9 +137,15 @@ object RouteBinding {
       }
     }
 
-    val result = reify {
-      c.prefix.splice.addRoute("GET", buildClassRoute(restMethods.head, regexString, params).splice)
-    }
+    def addRoute(handler: c.Expr[AnnotationHandler], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[AnnotationHandler] = reify (
+      handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol, regexString, params).splice)
+    )
+
+    val result = restMethods.foldLeft(handler){ case (handler, (sym, reqMethod)) => reqMethod match {
+      case reqMethod if reqMethod =:= typeOf[GET] => addRoute(handler, "GET", sym)
+      case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, "POST", sym)
+    }}
+
     println(s"DEBUG: $result")
     result
   }

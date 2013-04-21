@@ -1,6 +1,6 @@
 package main
 
-import javax.ws.rs.{DefaultValue, GET, FormParam, QueryParam}
+import javax.ws.rs._
 
 
 /**
@@ -10,18 +10,19 @@ import javax.ws.rs.{DefaultValue, GET, FormParam, QueryParam}
 
 class TestClass {
 
-//  @GET
-//  def routeOne() = "route one"
-//
-//  @POST
-//  def routeTwo(bar: String, @FormParam("name") name: String) = s"The route received the name $name"
+  @POST
+  def routeTwo(bar: String, @FormParam("name") name: String) = s"The route received the name $name"
 
   @GET
-  def  routeThree(bar: String) = s"The route received $bar"
+  def routeThree(bar: String) = s"The route received $bar"
 
 }
 
 class TestClass2 {
   @GET
-  def routeOne(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int) = s"routeOne: bar = $bar, query = $query"
+  def routeGet(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int) = s"routeGet: bar = $bar, query = $query"
+
+  @POST
+  def routePost(bar: Int, @FormParam("form") @DefaultValue("3.4") form: Double) =
+    s"routePost: bar = $bar, form = $form"
 }

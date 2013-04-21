@@ -1,6 +1,7 @@
 package jaxmacros.macrohelpers
 
 import scala.reflect.macros.Context
+import javax.ws.rs.DefaultValue
 
 /**
  * @author brycea
@@ -50,6 +51,11 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(_))
     case t if tpe =:= typeOf[String] => reify(Converters.strToStr(_))
   }
+
+  def getDefaultParamExpr(p: Symbol, name: String) = p.annotations.find(_.tpe == typeOf[DefaultValue])
+    .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
+    .map(PRIM(_, p.typeSignature))
+    .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
 }
 
 object Converters {
