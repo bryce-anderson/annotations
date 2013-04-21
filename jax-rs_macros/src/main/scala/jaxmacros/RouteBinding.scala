@@ -81,35 +81,39 @@ object RouteBinding {
           s"Path params: ${pathParamNames}\n" +
           s"Method params: ${pathParams.flatten}")
 
-      val constructorParamsTree: List[List[Tree]] = sym.paramss.map(_.map(_ match {
-        case p if pathParams.exists(_ == p.name.decoded) =>
+      // TODO: add class constructor support
+      // Make expr's that will be used to generate an instance of the class if the route matches
+      val instExpr = c.Expr[A](Ident(newTermName("clazz")))
+      val newInstExpr = c.Expr[A](Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List()))
+
+      val constructorParamsTree: List[List[Tree]] = sym.paramss.map(_.zipWithIndex.map{ case (p, index) =>
+        if (pathParams.exists(_ == p.name.decoded)) {
           val index = LIT(pathParamNames.indexOf(p.name.decoded))
           primConvert(reify(resultExpr.splice.group(index.splice + 1)), p.typeSignature).tree
-
-        case p if queryParams.exists(_ == p.name.decoded) =>
+        }
+        else if (queryParams.exists(_ == p.name.decoded)) {
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
-          val defaultExpr = getDefaultParamExpr(p, queryKey)
+          val defaultExpr = getDefaultParamExpr(p, queryKey, instExpr, sym.name.decoded, index)
 
           reify(queryExpr.splice.get(LIT(queryKey).splice)
             .map(primConvert(p.typeSignature).splice)
             .getOrElse(defaultExpr.splice)).tree
+        }
 
-
-        case p if formParams.exists(_ == p.name.decoded) =>
+        else if (formParams.exists(_ == p.name.decoded)) {
           val formKey = p.annotations.find(_.tpe == typeOf[FormParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
-          val defaultExpr = getDefaultParamExpr(p, formKey)
+          val defaultExpr = getDefaultParamExpr(p, formKey, instExpr, sym.name.decoded, index)
 
           reify(Option(reqExpr.splice.getParameter(LIT(formKey).splice))
               .map(primConvert(p.typeSignature).splice)
               .getOrElse(defaultExpr.splice)).tree
-      }))
+        }
+        else {???}
+      })
 
-      // TODO: add class constructor support
-      val instanceTree = Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List())
-      val routeTree = Apply(Select(instanceTree, sym.name), constructorParamsTree.flatten)
-
+      val routeTree = Apply(Select(instExpr.tree, sym.name), constructorParamsTree.flatten)
       val strExpr = c.Expr[String](routeTree)
 
       reify {
@@ -118,11 +122,11 @@ object RouteBinding {
           def handle( req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
             val path = req.getPathInfo
             lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
-
             pathRegex.findFirstMatchIn(path) match {
               case None => false
               case Some(results) => // Should have a RegexMatch of the results to bind
                 try {
+                  val clazz = newInstExpr.splice   // Name is important, trees depend on it
                   resp.getWriter().write(strExpr.splice)
                 } catch {
                   case t: Throwable =>

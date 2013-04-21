@@ -52,10 +52,17 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[String] => reify(Converters.strToStr(_))
   }
 
-  def getDefaultParamExpr(p: Symbol, name: String) = p.annotations.find(_.tpe == typeOf[DefaultValue])
+  def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c1.Expr[T], methodName: String, paramIndex: Int) = {
+    p.annotations.find(_.tpe == typeOf[DefaultValue])
     .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
     .map(PRIM(_, p.typeSignature))
+      .orElse(p.asTerm.isParamWithDefault match {
+      case true =>  Some(c1.Expr(Select(classExpr.tree,
+                  newTermName(methodName + "$default$" + (paramIndex + 1).toString))))
+      case false => None
+    })
     .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
+  }
 }
 
 object Converters {
