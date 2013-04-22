@@ -42,7 +42,9 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(str.splice))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(str.splice))
     case t if tpe =:= typeOf[String] => str
-    case t => c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+    case t =>
+      c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+      throw new java.util.UnknownFormatConversionException(s"Cannot convert type $tpe")
   }
 
   def primConvert(tpe: c1.Type) = tpe match {
@@ -51,7 +53,9 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(_))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(_))
     case t if tpe =:= typeOf[String] => reify(Converters.strToStr(_))
-    case t => c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+    case t =>
+      c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+      throw new java.util.UnknownFormatConversionException(s"Cannot convert type $tpe")
   }
 
   def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c1.Expr[T], methodName: String, paramIndex: Int) = {

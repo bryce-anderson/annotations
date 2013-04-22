@@ -120,8 +120,7 @@ object RouteBinding {
       reify {
         val pathRegex = LIT(regex).splice.r
         new Route {
-          def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
-            val path = req.getPathInfo
+          def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
             lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
             pathRegex.findFirstMatchIn(path) match {
               case None => false

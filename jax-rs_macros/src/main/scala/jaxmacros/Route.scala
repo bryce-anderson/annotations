@@ -2,6 +2,7 @@ package jaxmacros
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
 
 /**
  * @author Bryce Anderson
@@ -9,8 +10,17 @@ import scala.util.matching.Regex
  */
 
 trait Route {
-  def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean
+  def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean
 }
 
 object Route {
+  def apply(regex: String, route: (Match, HttpServletRequest, HttpServletResponse) => Boolean): Route = {
+    val routeRegex = regex.r()
+    new Route {
+      def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse) = routeRegex.findFirstMatchIn(path) match {
+        case None => false
+        case Some(matches) => route(matches, req, resp)
+      }
+    }
+  }
 }

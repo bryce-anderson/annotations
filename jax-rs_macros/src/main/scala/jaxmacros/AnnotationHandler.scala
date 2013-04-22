@@ -18,14 +18,15 @@ class AnnotationHandler extends AbstractHandler with Route { self =>
   private val postRoutes = new MutableList[Route]()
 
   // Virtual method of AbstractHandler
-  override def handle(target: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) =
-    baseRequest.setHandled(handle(req, resp))
+  override def handle(path: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) {
+    baseRequest.setHandled(handle(path, req, resp))
+  }
 
-  def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
+  def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
 
     def searchList(it: Iterator[Route]): Boolean = {
       if (it.hasNext) {
-        if (it.next.handle(req, resp))  true
+        if (it.next.handle(path, req, resp))  true
         else searchList(it)
       } else false
     }
