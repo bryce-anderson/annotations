@@ -42,6 +42,7 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(str.splice))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(str.splice))
     case t if tpe =:= typeOf[String] => str
+    case t => c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
   }
 
   def primConvert(tpe: c1.Type) = tpe match {
@@ -50,6 +51,7 @@ class Helpers[C <: Context](val c1: C) {
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(_))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(_))
     case t if tpe =:= typeOf[String] => reify(Converters.strToStr(_))
+    case t => c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
   }
 
   def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c1.Expr[T], methodName: String, paramIndex: Int) = {
@@ -57,7 +59,7 @@ class Helpers[C <: Context](val c1: C) {
     .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
     .map(PRIM(_, p.typeSignature))
       .orElse(p.asTerm.isParamWithDefault match {
-      case true =>  Some(c1.Expr(Select(classExpr.tree,
+      case true =>  Some(c1.Expr(Select(classExpr.tree, // TODO: find canonical way to get default method names
                   newTermName(methodName + "$default$" + (paramIndex + 1).toString))))
       case false => None
     })

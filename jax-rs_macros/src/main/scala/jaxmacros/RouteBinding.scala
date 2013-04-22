@@ -19,7 +19,7 @@ object RouteBinding {
 
     import c.universe._
 
-    val helpers = new macrohelpers.Helpers[c.type ](c)
+    val helpers = new macrohelpers.Helpers[c.type](c)
     import helpers._
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
@@ -91,6 +91,7 @@ object RouteBinding {
           val index = LIT(pathParamNames.indexOf(p.name.decoded))
           primConvert(reify(resultExpr.splice.group(index.splice + 1)), p.typeSignature).tree
         }
+
         else if (queryParams.exists(_ == p.name.decoded)) {
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
@@ -119,7 +120,7 @@ object RouteBinding {
       reify {
         val pathRegex = LIT(regex).splice.r
         new Route {
-          def handle( req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
+          def handle(req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
             val path = req.getPathInfo
             lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
             pathRegex.findFirstMatchIn(path) match {
