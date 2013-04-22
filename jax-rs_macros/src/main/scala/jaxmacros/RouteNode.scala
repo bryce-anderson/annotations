@@ -10,10 +10,18 @@ import scala.reflect.macros.Context
  * @author Bryce Anderson
  *         Created on 4/22/13 at 8:56 AM
  */
+
+/* TODO: RouteNodes should contain the methods used to handle route errors.
+         This will allow extending the RouteNode to handle different classes of exceptions.
+   TODO: How are RouteNodes going to partially match and pass to their leaves?
+   TODO: Deal with the method types. Strings will be error prone.
+ */
+
 trait RouteNode extends Route { self =>
   // Need to define the storage for the nodes
   protected def getRoutes: MutableList[Route]
   protected def postRoutes: MutableList[Route]
+
 
   override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
 

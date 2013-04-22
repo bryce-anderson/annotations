@@ -14,12 +14,12 @@ trait Route {
 }
 
 object Route {
-  def apply(regex: String, route: (Match, HttpServletRequest, HttpServletResponse) => Boolean): Route = {
+  def apply(regex: String)(route: (Match, HttpServletRequest, HttpServletResponse) => Any): Route = {
     val routeRegex = regex.r()
     new Route {
       def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse) = routeRegex.findFirstMatchIn(path) match {
         case None => false
-        case Some(matches) => route(matches, req, resp)
+        case Some(matches) => route(matches, req, resp); true
       }
     }
   }

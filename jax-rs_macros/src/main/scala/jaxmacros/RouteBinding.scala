@@ -118,24 +118,15 @@ object RouteBinding {
       val strExpr = c.Expr[String](routeTree)
 
       reify {
-        val pathRegex = LIT(regex).splice.r
-        new Route {
-          def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
-            lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
-            pathRegex.findFirstMatchIn(path) match {
-              case None => false
-              case Some(results) => // Should have a RegexMatch of the results to bind
-                try {
-                  val clazz = newInstExpr.splice   // Name is important, trees depend on it
-                  resp.getWriter().write(strExpr.splice)
-                } catch {
-                  case t: Throwable =>
-                    t.printStackTrace()// TODO: handle error
-                    throw t
-                }
-
-                true
-            }
+        Route ( LIT(regex).splice){ (results, req, resp) =>  // These names are important for the macro. Dont change.
+          lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
+          try {
+            val clazz = newInstExpr.splice   // Name is important, trees depend on it
+            resp.getWriter().write(strExpr.splice)
+          } catch {
+            case t: Throwable =>
+              t.printStackTrace()// TODO: handle error
+              throw t
           }
         }
       }
