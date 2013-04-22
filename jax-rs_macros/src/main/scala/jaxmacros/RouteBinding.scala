@@ -13,9 +13,9 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 object RouteBinding {
 
-  def bindClass[A](handler: AnnotationHandler, path: String) = macro bindClass_impl[A]
+  def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: Context)
-               (handler: c.Expr[AnnotationHandler], path: c.Expr[String]) :c.Expr[AnnotationHandler] = {
+               (handler: c.Expr[RouteNode], path: c.Expr[String]) :c.Expr[RouteNode] = {
 
     import c.universe._
 
@@ -141,7 +141,7 @@ object RouteBinding {
       }
     }
 
-    def addRoute(handler: c.Expr[AnnotationHandler], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[AnnotationHandler] = reify (
+    def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify (
       handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol, regexString, params).splice)
     )
 
