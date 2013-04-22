@@ -9,6 +9,12 @@ import scala.util.matching.Regex.Match
  *         Created on 4/19/13 at 2:42 PM
  */
 
+/*
+  Trait that represents a single route, eg a GET request or a POST request.
+  The route will attempt to run, but errors must be handled by the RouteNode executing the route.
+  The return value says whether the route was matched and executed successfully. Exceptions should
+  signal that the route matched, but there was a problem of some type during execution.
+ */
 trait Route {
   def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean
 }

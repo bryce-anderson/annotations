@@ -15,6 +15,7 @@ import scala.reflect.macros.Context
          This will allow extending the RouteNode to handle different classes of exceptions.
    TODO: How are RouteNodes going to partially match and pass to their leaves?
    TODO: Deal with the method types. Strings will be error prone.
+   TODO: Who's job is it to render the response? The RouteNode?
  */
 
 trait RouteNode extends Route { self =>
@@ -23,12 +24,24 @@ trait RouteNode extends Route { self =>
   protected def postRoutes: MutableList[Route]
 
 
+  // This method should be stacked using super calls to created an exception pipeline.
+  protected def handleException(t: Throwable) {
+    t.printStackTrace() // TODO: handle errors more elegantly
+    throw t
+  }
+
   override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
 
     def searchList(it: Iterator[Route]): Boolean = {
       if (it.hasNext) {
-        if (it.next.handle(path, req, resp))  true
-        else searchList(it)
+        try {
+          if (it.next.handle(path, req, resp))  true
+          else searchList(it)
+        } catch {
+          case t: Throwable =>
+            handleException(t)
+            true
+        }
       } else false
     }
 

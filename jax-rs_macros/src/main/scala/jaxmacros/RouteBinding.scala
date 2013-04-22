@@ -120,14 +120,8 @@ object RouteBinding {
       reify {
         Route ( LIT(regex).splice){ (results, req, resp) =>  // These names are important for the macro. Dont change.
           lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
-          try {
-            val clazz = newInstExpr.splice   // Name is important, trees depend on it
-            resp.getWriter().write(strExpr.splice)
-          } catch {
-            case t: Throwable =>
-              t.printStackTrace()// TODO: handle error
-              throw t
-          }
+          val clazz = newInstExpr.splice   // Name is important, trees depend on it
+          resp.getWriter().write(strExpr.splice)
         }
       }
     }
