@@ -10,7 +10,7 @@ object Main {
     println("Hello world")
     val annHandler = AnnotationHandler
       .mapClass[TestClass]("foo/:bar/cats")
-      .mapClass[TestClass2]("testclass2/:bar/cats")
+     .mapClass[TestClass2]("testclass2/:bar/cats")
 
     val server = new Server(8080)
     server.setHandler(annHandler)

@@ -11,24 +11,16 @@ import scala.reflect.macros.Context
  *         Created on 4/22/13 at 8:56 AM
  */
 
-/* TODO: RouteNodes should contain the methods used to handle route errors.
-         This will allow extending the RouteNode to handle different classes of exceptions.
-   TODO: How are RouteNodes going to partially match and pass to their leaves?
+/* TODO: How are RouteNodes going to partially match and pass to their leaves?
    TODO: Deal with the method types. Strings will be error prone.
    TODO: Who's job is it to render the response? The RouteNode?
  */
 
-trait RouteNode extends Route { self =>
+trait RouteNode extends Route with RouteExceptionHandler with ResultRenderer { self =>
+
   // Need to define the storage for the nodes
   protected def getRoutes: MutableList[Route]
   protected def postRoutes: MutableList[Route]
-
-
-  // This method should be stacked using super calls to created an exception pipeline.
-  protected def handleException(t: Throwable) {
-    t.printStackTrace() // TODO: handle errors more elegantly
-    throw t
-  }
 
   override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
 
@@ -37,11 +29,7 @@ trait RouteNode extends Route { self =>
         try {
           if (it.next.handle(path, req, resp))  true
           else searchList(it)
-        } catch {
-          case t: Throwable =>
-            handleException(t)
-            true
-        }
+        } catch { case t: Throwable => handleException(t, path, req, resp); true }
       } else false
     }
 
@@ -72,8 +60,16 @@ object RouteNode {
 
   def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
 
-  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] =
-    RouteBinding.bindClass_impl(c)(c.universe.reify(new DefaultRouteNode()), path)
+  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
+    import c.universe._
+    val nodeExpr = c.Expr[RouteNode](Ident(newTermName("node")))
+    reify({
+      val node = new DefaultRouteNode()
+      RouteBinding.bindClass_impl(c)(nodeExpr, path)
+      node
+    })
+
+  }
 
   type RouteContext = Context { type PrefixType = RouteNode }
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext)
