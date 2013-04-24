@@ -16,11 +16,10 @@ import scala.reflect.macros.Context
    TODO: Does the Option[Any] make sense? Should a proprietary type be used, or an either?
  */
 
-trait RouteNode extends Route with RouteExceptionHandler with ResultRenderer { self =>
+class RouteNode extends Route with RouteExceptionHandler with ResultRenderer { self =>
 
-  // TODO: this is dumb. needs to be changed.
-  protected def getRoutes: MutableList[Route]
-  protected def postRoutes: MutableList[Route]
+  protected val getRoutes = new MutableList[Route]()
+  protected val postRoutes = new MutableList[Route]()
 
   override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
@@ -51,14 +50,7 @@ trait RouteNode extends Route with RouteExceptionHandler with ResultRenderer { s
     case x => throw new NotImplementedError(s"Method type $x not implemented")
   }
 
-  def foo() {}
-
   def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
-}
-
-class DefaultRouteNode extends RouteNode {
-  protected val getRoutes = new MutableList[Route]()
-  protected val postRoutes = new MutableList[Route]()
 }
 
 object RouteNode {
@@ -69,8 +61,8 @@ object RouteNode {
     import c.universe._
     val nodeExpr = c.Expr[RouteNode](Ident(newTermName("node")))
     reify({
-      val node = new DefaultRouteNode()
-      RouteBinding.bindClass_impl(c)(nodeExpr, path)
+      val node = new RouteNode()
+      RouteBinding.bindClass_impl(c)(nodeExpr, path).splice
       node
     })
 

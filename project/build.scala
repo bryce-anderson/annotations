@@ -9,9 +9,7 @@ object BuildSettings {
     version := "0.0.1",
     scalaVersion := "2.10.1",
     scalacOptions ++= Seq(),
-    libraryDependencies += "javax.ws.rs" % "jsr311-api" % "1.1.1",
-    libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417",
-    libraryDependencies += "org.scalatra.rl" %% "rl" % "0.4.2"
+    libraryDependencies += "javax.ws.rs" % "jsr311-api" % "1.1.1"
   )
 }
 
@@ -22,12 +20,19 @@ object MyBuild extends Build {
     "jax-rs_macros",
     file("jax-rs_macros"),
     settings = buildSettings ++ Seq(
-      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _))
+      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _)
+    ) ++ Seq (
+      libraryDependencies += "javax.servlet" % "javax.servlet-api" % "3.0.1",
+      libraryDependencies += "org.scalatra.rl" %% "rl" % "0.4.2"
+    )
   )
   
   lazy val test: Project = Project(
     "test",
     file("test"),
-    settings = buildSettings ++ Revolver.settings
+    settings = buildSettings ++ Revolver.settings ++ Seq(
+      libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417",
+      libraryDependencies += "org.eclipse.jetty" % "jetty-servlet" % "9.0.2.v20130417"
+    )
   ) dependsOn(macros)
 }

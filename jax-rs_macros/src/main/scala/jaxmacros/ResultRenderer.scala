@@ -11,13 +11,7 @@ import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 Trait that takes responsibility for rendering the result of a route. To add new formats, stack
 more traits and use a super call to pass results down the chain.
  */
-trait ResultRenderer {
-//  def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any) = result match {
-//    case Unit => Unit
-//    case s: String => resp.getWriter().write(s)
-//    case xml: xml.NodeSeq => resp.getWriter().write(xml.toString())
-//    case e => throw new java.util.UnknownFormatConversionException(s"Cannot render result of type '${e.getClass}")
-//  }
+trait ResultRenderer { self: RouteNode =>
   def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Unit  = result match {
     case Unit => // Nothing
     case s: String => resp.getWriter().write(s)
