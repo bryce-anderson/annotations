@@ -24,13 +24,16 @@ object RouteBinding {
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
-    val (regexString: String, params: List[String]) = path.tree match {
-      // need to get a regex and a list of param names.
-      case Literal(Constant(pathString: String)) =>
-        println(s"DEBUG: Found path: $pathString")
-        PathHelpers.breakdownPath(pathString)
-      case _ => c.error(c.enclosingPosition, "Route path must be a literal constant.")
-    }
+//    val (regexString: String, params: List[String]) = path.tree match {
+//      // need to get a regex and a list of param names.
+//      case Literal(Constant(pathString: String)) =>
+//        println(s"DEBUG: Found path: $pathString")
+//        val (str, params) = PathHelpers.breakdownPath(pathString)
+//        println(s"DEBUG: Found path params: $params")
+//        println(s"DEBUG: Found regex string: $str")
+//        (str, params)
+//      case _ => c.error(c.enclosingPosition, "Route path must be a literal constant.")
+//    }
 
     val tpe = weakTypeOf[A]
 
@@ -39,13 +42,12 @@ object RouteBinding {
       .map(m => (m, m.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).head.tpe))
       .toList
 
-    println(s"DEBUG: Found path params: $params")
-    println(s"DEBUG: Found regex string: $regexString")
+
     println("DEBUG: Rest method count: " + restMethods.length.toString)
 
 
     // pathParamNames needs to be in the order found by the regex. Will use it to get regex indexes
-    def buildClassRoute(sym: MethodSymbol, regex: String, pathParamNames: List[String]): c.Expr[Route] = {
+    def buildClassRoute(sym: MethodSymbol): c.Expr[Route] = {
 
       if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
         c.error(c.enclosingPosition, s"Method ${sym.name.decoded} has more than one REST annotation.")
@@ -70,26 +72,25 @@ object RouteBinding {
       val reqExpr = c.Expr[HttpServletRequest](Ident(newTermName(reqName)))
       val respName = "resp"
       val respExpr = c.Expr[HttpServletResponse](Ident(newTermName(respName)))
-      val resultName = "results"
-      val resultExpr = c.Expr[Regex.Match](Ident(newTermName(resultName)))
+      val routeParamsName = "routeParams"
+      val routeParamstExpr = c.Expr[Map[String, String]](Ident(newTermName(routeParamsName)))
       val queryName = "queryParams"
       val queryExpr = c.Expr[Map[String, String]](Ident(newTermName(queryName)))
 
-      if (pathParamNames.sorted != pathParams.sorted)
-        c.error(c.enclosingPosition,
-          s"Route variables don't match unannotated method variables in method ${sym.name.decoded}.\n" +
-          s"Path params: ${pathParamNames}\n" +
-          s"Method params: ${pathParams.flatten}")
+//      if (pathParamNames.sorted != pathParams.sorted)
+//        c.error(c.enclosingPosition,
+//          s"Route variables don't match unannotated method variables in method ${sym.name.decoded}.\n" +
+//          s"Path params: ${pathParamNames}\n" +
+//          s"Method params: ${pathParams.flatten}")
 
       // TODO: add class constructor support
       // Make expr's that will be used to generate an instance of the class if the route matches
       val instExpr = c.Expr[A](Ident(newTermName("clazz")))
       val newInstExpr = c.Expr[A](Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List()))
 
-      val constructorParamsTree: List[List[Tree]] = sym.paramss.map(_.zipWithIndex.map{ case (p, index) =>
+      val constructorParamsTree: List[List[Tree]] = sym.paramss.map( _.zipWithIndex.map { case (p, index) =>
         if (pathParams.exists(_ == p.name.decoded)) {
-          val index = LIT(pathParamNames.indexOf(p.name.decoded))
-          primConvert(reify(resultExpr.splice.group(index.splice + 1)), p.typeSignature).tree
+          primConvert(reify(routeParamstExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
         }
 
         else if (queryParams.exists(_ == p.name.decoded)) {
@@ -118,7 +119,7 @@ object RouteBinding {
       val routeResult = c.Expr[Any](routeTree)
 
       reify {
-        Route ( LIT(regex).splice){ (results, req, resp) =>  // These names are important for the macro. Don't change.
+        Route ( handler.splice.buildRegex(path.splice)){ (routeParams, req, resp) =>  // These names are important for the macro. Don't change.
           lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
           val clazz = newInstExpr.splice   // Name is important, trees depend on it
           routeResult.splice
@@ -127,7 +128,7 @@ object RouteBinding {
     }
 
     def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify (
-      handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol, regexString, params).splice)
+      handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol).splice)
     )
 
     val result = restMethods.foldLeft(handler){ case (handler, (sym, reqMethod)) => reqMethod match {
@@ -135,7 +136,6 @@ object RouteBinding {
       case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, "POST", sym)
     }}
 
-    println(s"DEBUG: $result")
     result
   }
 }

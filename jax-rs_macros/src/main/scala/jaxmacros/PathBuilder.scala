@@ -4,16 +4,11 @@ import scala.util.matching.Regex
 
 /**
  * @author Bryce Anderson
- *         Created on 4/19/13 at 8:53 AM
+ *         Created on 4/24/13 at 10:12 AM
  */
-
-// Modeled after Scalatras path matchers
-trait PathPattern {
-  def apply(path: String): Option[Map[String, Seq[String]]]
-}
-
-object PathHelpers {
-  def breakdownPath(in: String): (String, List[String]) = {
+trait PathBuilder { self: RouteNode =>
+  // Must build a regex with named groups. This is a default implementation
+  def buildRegex(in: String): Regex = {
     val paramsBuilder = new scala.collection.mutable.ListBuffer[String]
     val regexBuilder = new StringBuilder
 
@@ -37,6 +32,6 @@ object PathHelpers {
     }
 
     breakdown(in)
-    (regexBuilder.result, paramsBuilder.result)
+    new Regex(regexBuilder.result, paramsBuilder.result:_*)
   }
 }

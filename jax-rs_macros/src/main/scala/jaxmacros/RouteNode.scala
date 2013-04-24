@@ -5,6 +5,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
+import scala.util.matching.Regex
 
 /**
  * @author Bryce Anderson
@@ -20,18 +21,18 @@ import scala.reflect.macros.Context
    TODO: Does the Option[Any] make sense? Should a proprietary type be used, or an either?
  */
 
-class RouteNode extends Route with RouteExceptionHandler with ResultRenderer { self =>
+class RouteNode extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
 
   protected val getRoutes = new MutableList[Route]()
   protected val postRoutes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
-  override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
+  override def handle(path: String, pathParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
     def searchList(it: Iterator[Route]): Option[Any] = {
       if (it.hasNext) {
         try {
-          it.next.handle(path, req, resp) match {
+          it.next.handle(path, pathParams, req, resp) match {
             case None => searchList(it)
             case done @ Some(Unit) => done
             case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
@@ -74,8 +75,19 @@ object RouteNode {
   }
 
   type RouteContext = Context { type PrefixType = RouteNode }
-  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext)
-      (path: c.Expr[String]) :c.Expr[RouteNode] =  RouteBinding.bindClass_impl(c)(c.prefix, path)
+  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
+    import c.universe._
+    val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
+    val expr = reify {
+      {
+        val tmp = c.prefix.splice
+        RouteBinding.bindClass_impl(c)(routeExpr, path).splice
+        tmp
+      }
+    }
+    println(s"DEBUG: -----------------------------------\n $expr")
+    expr
+  }
 
 }
 
