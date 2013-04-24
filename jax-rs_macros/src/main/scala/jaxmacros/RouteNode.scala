@@ -11,7 +11,11 @@ import scala.reflect.macros.Context
  *         Created on 4/22/13 at 8:56 AM
  */
 
-/* TODO: How are RouteNodes going to partially match and pass to their leaves?
+/*
+   TODO: Perhaps the handle should be passed a map of the route params and their values as strings?
+            This will allow the "buildup" of the route along the route tree.
+            - It comes at the cost of not being able to compile time check the route params for correctness.
+            - It does let the mapClass method take non-literal constants which might offer dynamic runtime route building
    TODO: Deal with the method types. Strings will be error prone.
    TODO: Does the Option[Any] make sense? Should a proprietary type be used, or an either?
  */
@@ -21,6 +25,7 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer { s
   protected val getRoutes = new MutableList[Route]()
   protected val postRoutes = new MutableList[Route]()
 
+  // This method should be overridden to match parts of the url.
   override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
     def searchList(it: Iterator[Route]): Option[Any] = {
