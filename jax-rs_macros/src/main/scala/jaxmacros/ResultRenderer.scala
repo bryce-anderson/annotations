@@ -18,5 +18,14 @@ trait ResultRenderer {
 //    case xml: xml.NodeSeq => resp.getWriter().write(xml.toString())
 //    case e => throw new java.util.UnknownFormatConversionException(s"Cannot render result of type '${e.getClass}")
 //  }
-  def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any)  = {}
+  def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Unit  = result match {
+    case Unit => // Nothing
+    case s: String => resp.getWriter().write(s)
+    case d: Array[Byte] => resp.getOutputStream().write(d)
+    case xml: xml.NodeSeq => resp.getWriter().write(xml.toString())
+    case Some(r) => renderResponse(req, resp, r)
+    case e => throw new java.lang.UnsupportedOperationException(s"Type '${e.getClass}' not supported by the pipeline. " +
+                      "Try mixing a ResultRenderer trait into the route node.")
+
+  }
 }

@@ -19,7 +19,7 @@ class AnnotationHandler extends AbstractHandler with RouteNode { self =>
 
   // Virtual method of AbstractHandler
   override def handle(path: String, baseRequest: Request, req: HttpServletRequest, resp: HttpServletResponse) {
-    baseRequest.setHandled(handle(path, req, resp))
+    baseRequest.setHandled(handle(path, req, resp) match { case Some(_) => true; case _ => false})
   }
 }
 
@@ -39,6 +39,5 @@ object AnnotationHandler {
     )
     //println("----------------------------------------\n" + expr.toString)
     expr
-
   }
 }

@@ -115,15 +115,13 @@ object RouteBinding {
       })
 
       val routeTree = Apply(Select(instExpr.tree, sym.name), constructorParamsTree.flatten)
-      val strExpr = c.Expr[String](routeTree)
+      val routeResult = c.Expr[Any](routeTree)
 
       reify {
         Route ( LIT(regex).splice){ (results, req, resp) =>  // These names are important for the macro. Don't change.
           lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
           val clazz = newInstExpr.splice   // Name is important, trees depend on it
-          resp.getWriter().write(strExpr.splice)
-          // TODO: Cannot seem to call the handler from this expr. Why?
-          handler.splice.renderResponse(req, resp, strExpr.splice)
+          routeResult.splice
         }
       }
     }

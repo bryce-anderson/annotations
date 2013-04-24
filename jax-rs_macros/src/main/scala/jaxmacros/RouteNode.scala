@@ -13,24 +13,27 @@ import scala.reflect.macros.Context
 
 /* TODO: How are RouteNodes going to partially match and pass to their leaves?
    TODO: Deal with the method types. Strings will be error prone.
-   TODO: Who's job is it to render the response? The RouteNode?
+   TODO: Does the Option[Any] make sense? Should a proprietary type be used, or an either?
  */
 
 trait RouteNode extends Route with RouteExceptionHandler with ResultRenderer { self =>
 
-  // Need to define the storage for the nodes
+  // TODO: this is dumb. needs to be changed.
   protected def getRoutes: MutableList[Route]
   protected def postRoutes: MutableList[Route]
 
-  override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean = {
+  override def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
-    def searchList(it: Iterator[Route]): Boolean = {
+    def searchList(it: Iterator[Route]): Option[Any] = {
       if (it.hasNext) {
         try {
-          if (it.next.handle(path, req, resp))  true
-          else searchList(it)
-        } catch { case t: Throwable => handleException(t, path, req, resp); true }
-      } else false
+          it.next.handle(path, req, resp) match {
+            case None => searchList(it)
+            case done @ Some(Unit) => done
+            case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
+          }
+        }  catch { case t: Throwable => handleException(t, path, req, resp); Some(Unit) }
+      } else None
     }
 
     req.getMethod() match {
@@ -47,6 +50,8 @@ trait RouteNode extends Route with RouteExceptionHandler with ResultRenderer { s
 
     case x => throw new NotImplementedError(s"Method type $x not implemented")
   }
+
+  def foo() {}
 
   def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
 }

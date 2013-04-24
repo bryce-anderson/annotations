@@ -16,17 +16,16 @@ import scala.util.matching.Regex.Match
   signal that the route matched, but there was a problem of some type during execution.
  */
 trait Route {
-  def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Boolean
+  def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse): Option[Any]
 }
 
 object Route {
   def apply(regex: String)(route: (Match, HttpServletRequest, HttpServletResponse) => Any): Route = {
     val routeRegex = regex.r()
     new Route {
-      def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse) = routeRegex.findFirstMatchIn(path) match {
-        case None => false
-        case Some(matches) => route(matches, req, resp); true
-      }
+      def handle(path: String, req: HttpServletRequest, resp: HttpServletResponse) =
+        routeRegex.findFirstMatchIn(path)
+          .map(route(_, req, resp))
     }
   }
 }
