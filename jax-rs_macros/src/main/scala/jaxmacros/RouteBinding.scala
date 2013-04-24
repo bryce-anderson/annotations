@@ -15,7 +15,7 @@ object RouteBinding {
 
   def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: Context)
-               (handler: c.Expr[RouteNode], path: c.Expr[String]) :c.Expr[RouteNode] = {
+               (handler: c.Expr[RouteNode], path: c.Expr[String]) :c.Expr[Unit] = {
 
     import c.universe._
 
@@ -24,6 +24,7 @@ object RouteBinding {
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
+    // TODO: could be reintroduced when the route is statically bound to check params.
 //    val (regexString: String, params: List[String]) = path.tree match {
 //      // need to get a regex and a list of param names.
 //      case Literal(Constant(pathString: String)) =>
@@ -127,15 +128,18 @@ object RouteBinding {
       }
     }
 
-    def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify (
+    def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
       handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol).splice)
-    )
+    }
 
     val result = restMethods.foldLeft(handler){ case (handler, (sym, reqMethod)) => reqMethod match {
       case reqMethod if reqMethod =:= typeOf[GET] => addRoute(handler, "GET", sym)
       case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, "POST", sym)
     }}
 
-    result
+    reify {
+      result.splice
+      ();
+    }
   }
 }

@@ -56,33 +56,34 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
     case x => throw new NotImplementedError(s"Method type $x not implemented")
   }
 
-  def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
+  def mapClass[A](path: String): Unit = macro RouteNode.mapClass_impl[A]
 }
 
 object RouteNode {
 
-  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
-
-  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
-    import c.universe._
-    val nodeExpr = c.Expr[RouteNode](Ident(newTermName("node")))
-    reify({
-      val node = new RouteNode()
-      RouteBinding.bindClass_impl(c)(nodeExpr, path).splice
-      node
-    })
-
-  }
+//  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
+//
+//  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
+//    import c.universe._
+//    val nodeExpr = c.Expr[RouteNode](Ident(newTermName("node")))
+//    val expr = reify({
+//      val node = new RouteNode()
+//      RouteBinding.bindClass_impl(c)(nodeExpr, path).splice
+//      node
+//    })
+//    println(s"DEBUG: -----------------------------------\n $expr")
+//    expr
+//  }
 
   type RouteContext = Context { type PrefixType = RouteNode }
-  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
+  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[Unit] =  {
     import c.universe._
     val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
     val expr = reify {
       {
         val tmp = c.prefix.splice
         RouteBinding.bindClass_impl(c)(routeExpr, path).splice
-        tmp
+        ();
       }
     }
     println(s"DEBUG: -----------------------------------\n $expr")
