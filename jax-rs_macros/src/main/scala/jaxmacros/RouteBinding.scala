@@ -13,9 +13,11 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 object RouteBinding {
 
+  type RouteMethod = Function3[Map[String, String], HttpServletRequest, HttpServletResponse, Any]
+
   def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: Context)
-               (handler: c.Expr[RouteNode], path: c.Expr[String]) :c.Expr[Unit] = {
+               (handler: c.Expr[RouteNode], path: c.Expr[String]) :c.Expr[RouteNode] = {
 
     import c.universe._
 
@@ -48,7 +50,7 @@ object RouteBinding {
 
 
     // pathParamNames needs to be in the order found by the regex. Will use it to get regex indexes
-    def buildClassRoute(sym: MethodSymbol): c.Expr[Route] = {
+    def buildClassRoute(sym: MethodSymbol): c.Expr[RouteMethod] = {
 
       if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
         c.error(c.enclosingPosition, s"Method ${sym.name.decoded} has more than one REST annotation.")
@@ -120,16 +122,18 @@ object RouteBinding {
       val routeResult = c.Expr[Any](routeTree)
 
       reify {
-        Route ( handler.splice.buildRegex(path.splice)){ (routeParams, req, resp) =>  // These names are important for the macro. Don't change.
-          lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
-          val clazz = newInstExpr.splice   // Name is important, trees depend on it
-          routeResult.splice
+        new RouteMethod {
+          def apply(routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Any = {
+            lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
+            val clazz = newInstExpr.splice   // Name is important, trees depend on it
+            routeResult.splice
+          }
         }
       }
     }
 
     def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
-      handler.splice.addRoute(LIT(reqMethod).splice, buildClassRoute(methodSymbol).splice)
+      handler.splice.addRoute(LIT(reqMethod).splice, path.splice, buildClassRoute(methodSymbol).splice)
     }
 
     val result = restMethods.foldLeft(handler){ case (handler, (sym, reqMethod)) => reqMethod match {
@@ -137,9 +141,6 @@ object RouteBinding {
       case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, "POST", sym)
     }}
 
-    reify {
-      result.splice
-      ();
-    }
+    result
   }
 }

@@ -6,6 +6,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
 import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
 
 /**
  * @author Bryce Anderson
@@ -18,7 +19,7 @@ import scala.util.matching.Regex
             - It comes at the cost of not being able to compile time check the route params for correctness.
             - It does let the mapClass method take non-literal constants which might offer dynamic runtime route building
    TODO: Deal with the method types. Strings will be error prone.
-   TODO: Does the Option[Any] make sense? Should a proprietary type be used, or an either?
+   TODO: Does the Option[Any] make sense? Should a proprietary type be created, or an either?
  */
 
 class RouteNode extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
@@ -49,43 +50,65 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
     }
   }
 
-  def addRoute(method: String, route: Route): self.type = method match {
-    case "GET" => getRoutes += route; self
-    case "POST" => postRoutes += route; self
+  def addRoute(method: String, route: Route): self.type = {
+    method match {
+      case "GET" => getRoutes += route
+      case "POST" => postRoutes += route
 
-    case x => throw new NotImplementedError(s"Method type $x not implemented")
+      case x => throw new NotImplementedError(s"Method type $x not implemented")
+    }
+    self
   }
 
-  def mapClass[A](path: String): Unit = macro RouteNode.mapClass_impl[A]
+  def addRoute(method: String, rawPath:String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
+    val regex = self.buildRegex(rawPath)
+    val route = new Route {
+        def handle(path: String, routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse) =
+          regex.findFirstMatchIn(path)
+            .map { matches =>
+            routeMethod(routeParams ++ namedRegexMatchToMap(matches), req, resp)
+          }
+      }
+    addRoute(method, route)
+  }
+
+  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] {
+
+    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = ???
+    def -(key: String): Map[String, String] = ???
+
+    def get(key: String): Option[String] = {
+      try {
+        Some(regex.group(key))
+      } catch {
+        case t: java.util.NoSuchElementException => None
+      }
+    }
+
+    def iterator: Iterator[(String, String)] = regex.groupNames.toIterator.map(key => (key, get(key).get) )
+  }
+
+  def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
 }
 
 object RouteNode {
 
-//  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
-//
-//  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
-//    import c.universe._
-//    val nodeExpr = c.Expr[RouteNode](Ident(newTermName("node")))
-//    val expr = reify({
-//      val node = new RouteNode()
-//      RouteBinding.bindClass_impl(c)(nodeExpr, path).splice
-//      node
-//    })
-//    println(s"DEBUG: -----------------------------------\n $expr")
-//    expr
-//  }
+  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
+
+  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
+    import c.universe._
+    val expr = RouteBinding.bindClass_impl(c)(reify(new RouteNode()), path)
+
+    println(s"DEBUG: -----------------------------------\n $expr")
+    expr
+  }
 
   type RouteContext = Context { type PrefixType = RouteNode }
-  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[Unit] =  {
+  def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
     import c.universe._
     val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
-    val expr = reify {
-      {
-        val tmp = c.prefix.splice
-        RouteBinding.bindClass_impl(c)(routeExpr, path).splice
-        ();
-      }
-    }
+    val expr = RouteBinding.bindClass_impl(c)(c.prefix, path)
+
     println(s"DEBUG: -----------------------------------\n $expr")
     expr
   }

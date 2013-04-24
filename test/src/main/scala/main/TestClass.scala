@@ -9,10 +9,10 @@ import javax.ws.rs._
  */
 
 class TestClass {
-
-  @POST
-  def routeTwo(bar: String, @FormParam("name") name: String) =
-    s"The route received the name $name"
+//
+//  @POST
+//  def routeTwo(bar: String, @FormParam("name") name: String) =
+//    s"The route received the name $name"
 
   @GET
   def routeThree(bar: String) =
