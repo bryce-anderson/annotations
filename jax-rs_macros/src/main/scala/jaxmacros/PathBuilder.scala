@@ -4,7 +4,7 @@ import scala.util.matching.Regex
 
 /**
  * @author Bryce Anderson
- *         Created on 4/24/13 at 10:12 AM
+ *         Created on 4/24/13
  */
 trait PathBuilder { self: RouteNode =>
   // Must build a regex with named groups. This is a default implementation

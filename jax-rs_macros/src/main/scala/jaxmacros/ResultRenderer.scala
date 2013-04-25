@@ -4,7 +4,7 @@ import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 /**
  * @author Bryce Anderson
- *         Created on 4/23/13 at 8:15 AM
+ *         Created on 4/23/13
  */
 
 /*

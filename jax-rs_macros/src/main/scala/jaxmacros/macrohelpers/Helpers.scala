@@ -4,8 +4,8 @@ import scala.reflect.macros.Context
 import javax.ws.rs.DefaultValue
 
 /**
- * @author brycea
- *         Created on 4/20/13 at 1:11 PM
+ * @author Bryce Anderson
+ *         Created on 4/20/13
  */
 class Helpers[C <: Context](val c1: C) {
   import c1.universe._

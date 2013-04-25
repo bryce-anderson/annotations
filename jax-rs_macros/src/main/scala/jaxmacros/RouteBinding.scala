@@ -9,7 +9,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 /**
  * @author Bryce Anderson
- *         Created on 4/18/13 at 2:48 PM
+ *         Created on 4/18/13
  */
 object RouteBinding {
 

@@ -10,7 +10,7 @@ import scala.util.matching.Regex.Match
 
 /**
  * @author Bryce Anderson
- *         Created on 4/22/13 at 8:56 AM
+ *         Created on 4/22/13
  */
 
 /*

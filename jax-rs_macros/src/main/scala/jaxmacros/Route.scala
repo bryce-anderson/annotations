@@ -6,7 +6,7 @@ import scala.util.matching.Regex.Match
 
 /**
  * @author Bryce Anderson
- *         Created on 4/19/13 at 2:42 PM
+ *         Created on 4/19/13
  */
 
 /*

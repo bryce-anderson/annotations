@@ -8,7 +8,7 @@ import scala.reflect.macros.Context
 
 /**
  * @author Bryce Anderson
- *         Created on 4/19/13 at 11:40 AM
+ *         Created on 4/19/13
  */
 class AnnotationHandler(rootNode: RouteNode) extends HttpServlet { self =>
 

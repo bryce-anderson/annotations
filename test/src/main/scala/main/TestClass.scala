@@ -5,7 +5,7 @@ import javax.ws.rs._
 
 /**
  * @author Bryce Anderson
- *         Created on 4/18/13 at 2:46 PM
+ *         Created on 4/18/13
  */
 
 class TestClass {

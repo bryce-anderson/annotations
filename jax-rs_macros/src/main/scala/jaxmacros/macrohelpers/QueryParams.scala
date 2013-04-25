@@ -4,7 +4,7 @@ import rl.UrlCodingUtils.urlDecode
 
 /**
  * @author Bryce Anderson
- *         Created on 4/20/13 at 3:04 PM
+ *         Created on 4/20/13
  */
 object QueryParams {
   def apply(queryStr: String) = queryStr.split('&')
