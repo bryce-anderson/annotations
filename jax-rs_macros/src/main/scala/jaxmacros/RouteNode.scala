@@ -21,27 +21,24 @@ import scala.util.matching.Regex.Match
 
 class RouteNode(path: String = "") extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
 
+
+
   private val regex = buildRegex(if (path.startsWith("/")) path else {
     if(path == "") "" else ("/" + path)
   })
 
-  protected val getRoutes = new MutableList[Route]()
-  protected val postRoutes = new MutableList[Route]()
+  protected val routes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
-  override def handle(path: String, pathParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
+  override def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
-    regex.findFirstMatchIn(path).flatMap{ result =>
-      val subPathParams = if (result.groupCount != 0) {
-        pathParams ++ namedRegexMatchToMap(result)
-      } else pathParams
-
-      val subPath = path.substring(result.end)
+    regex.findFirstMatchIn(path.path).flatMap{ result =>
+      val subPath = path.path.substring(result.end)
 
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
           try {
-            it.next().handle(subPath, subPathParams, req, resp) match {
+            it.next().handle(path.subPath(subPath, namedRegexMatchToMap(result)), req, resp) match {
               case None => searchList(it)
               case done @ Some(Unit) => done
               case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
@@ -50,35 +47,23 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
         } else None
       }
 
-      req.getMethod() match {
-        case "GET" => searchList(getRoutes.iterator)
-        case "POST" => searchList(postRoutes.iterator)
-
-        case x => throw new NotImplementedError(s"Method type $x not implemented")
-      }
+      searchList(routes.iterator)
     }
   }
 
-  def addRoute(method: String, route: Route): self.type = {
-    method match {
-      case "GET" => getRoutes += route
-      case "POST" => postRoutes += route
+  def addRoute(route: Route): self.type = { routes += route; self }
 
-      case x => throw new NotImplementedError(s"Method type $x not implemented")
-    }
-    self
-  }
-
-  def addRoute(method: String, path: String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
+  def addRoute(inMethod: RequestMethod, path: String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
     val regex = self.buildRegex(if (path.startsWith("/")) path else "/" + path)
     val route = new Route {
-        def handle(path: String, routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse) =
-          regex.findFirstMatchIn(path)
+      def method: RequestMethod = inMethod
+      def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) =
+          regex.findFirstMatchIn(path.path)
             .map { matches =>
-            routeMethod(routeParams ++ namedRegexMatchToMap(matches), req, resp)
+            routeMethod(path.params ++ namedRegexMatchToMap(matches), req, resp)
           }
       }
-    addRoute(method, route)
+    addRoute(route)
   }
 
   protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] { self =>

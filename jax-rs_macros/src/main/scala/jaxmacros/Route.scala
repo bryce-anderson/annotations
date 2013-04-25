@@ -17,21 +17,23 @@ import scala.util.matching.Regex.Match
  */
 
 trait Route {
-  def handle(path: String, routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Option[Any]
+  def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse): Option[Any]
 }
 
 object Route {
-  def apply(regex: Regex)(route: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): Route = {
+  def apply(regex: Regex, method: RequestMethod)(route: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): Route = {
     new Route {
-      def handle(path: String, routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse) =
-        regex.findFirstMatchIn(path)
+      def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) =
+        if (path.method == method) {
+        regex.findFirstMatchIn(path.path)
           .map { matches =>
-            route(routeParams ++ namedRegexMatchToMap(matches), req, resp)
+            route(path.params ++ namedRegexMatchToMap(matches), req, resp)
           }
+        } else None
     }
   }
 
-  def namedRegexMatchToMap(regex: Match) = new Map[String, String] {
+  def namedRegexMatchToMap(regex: Match) = new RouteParams {
 
     def +[B1 >: String](kv: (String, B1)): Map[String, B1] = ???
     def -(key: String): Map[String, String] = ???

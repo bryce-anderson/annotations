@@ -1,6 +1,7 @@
 package main
 
 import javax.ws.rs._
+import javax.servlet.http.HttpServletResponse
 
 
 /**
@@ -28,4 +29,16 @@ class TestClass2 {
   @POST
   def routePost(bar: Int, @FormParam("form") form: Double = 3.2) =
     s"routePost: bar = $bar, form = $form"
+}
+
+class TestClass3 {
+  @GET
+  def routeGet(bar: Int, resp: HttpServletResponse) {
+    resp.getWriter.write(s"TestClass3: bar = $bar, written directly.")
+  }
+}
+
+class DoubleClass {
+  @GET
+  def routeGet() = 3.14
 }

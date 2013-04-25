@@ -7,9 +7,15 @@ import org.eclipse.jetty.servlet.{ServletHolder, ServletContextHandler}
 object Main {
   def main(args: Array[String]) {
     println("Hello world")
-    val rootNode = RouteNode("/fat/cats")
+    val rootNode = RouteNode()
      .mapClass[TestClass]("/foo/:bar/cats")
      .mapClass[TestClass2]("/testclass2/:bar/cats")
+     .mapClass[TestClass3]("/testclass3/:bar")
+
+    val subRoute = new RouteNode("jimbo") with DoubleRenderer
+    subRoute.mapClass[DoubleClass]("/double")
+
+    rootNode.addRoute(subRoute)
 
 
     val context = new ServletContextHandler(ServletContextHandler.SESSIONS)

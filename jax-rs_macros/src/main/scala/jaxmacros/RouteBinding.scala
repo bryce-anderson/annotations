@@ -13,7 +13,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 object RouteBinding {
 
-  type RouteMethod = Function3[Map[String, String], HttpServletRequest, HttpServletResponse, Any]
+  type RouteMethod = Function3[RouteParams, HttpServletRequest, HttpServletResponse, Any]
 
   def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: Context)
@@ -50,8 +50,9 @@ object RouteBinding {
         param.annotations.exists(_.tpe =:= typeOf[FormParam])
       }.map(_.name.decoded)).flatten
 
-      if (!sym.annotations.exists(_.tpe == typeOf[POST]) && formParams.length > 0)
-        c.error(c.enclosingPosition, s"Method '${sym.name.decoded}' has POST params but is not a POST request.")
+      // May access them directly through a HttpServletRequest
+//      if (!sym.annotations.exists(_.tpe == typeOf[POST]) && formParams.length > 0)
+//        c.error(c.enclosingPosition, s"Method '${sym.name.decoded}' has POST params but is not a POST request.")
 
       val queryParams = sym.paramss.map(_.filter { param =>
         param.annotations.exists(_.tpe =:= typeOf[QueryParam])
@@ -62,7 +63,7 @@ object RouteBinding {
       val respName = "resp"
       val respExpr = c.Expr[HttpServletResponse](Ident(newTermName(respName)))
       val routeParamsName = "routeParams"
-      val routeParamstExpr = c.Expr[Map[String, String]](Ident(newTermName(routeParamsName)))
+      val routeParamstExpr = c.Expr[RouteParams](Ident(newTermName(routeParamsName)))
       val queryName = "queryParams"
       val queryExpr = c.Expr[Map[String, String]](Ident(newTermName(queryName)))
 
@@ -114,7 +115,7 @@ object RouteBinding {
 
       reify {
         new RouteMethod {
-          def apply(routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Any = {
+          def apply(routeParams: RouteParams, req: HttpServletRequest, resp: HttpServletResponse): Any = {
             lazy val queryParams = macrohelpers.QueryParams(Option(req.getQueryString).getOrElse(""))
             val clazz = newInstExpr.splice   // Name is important, trees depend on it
             routeResult.splice
@@ -123,13 +124,15 @@ object RouteBinding {
       }
     }
 
-    def addRoute(handler: c.Expr[RouteNode], reqMethod: String, methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
-      handler.splice.addRoute(LIT(reqMethod).splice, path.splice, buildClassRoute(methodSymbol).splice)
+    def addRoute(handler: c.Expr[RouteNode], reqMethod: c.Expr[RequestMethod], methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
+      handler.splice.addRoute(reqMethod.splice, path.splice, buildClassRoute(methodSymbol).splice)
     }
 
+    def reqMethodExpr(method: String) = c.Expr[RequestMethod](Select(Ident(newTermName("jaxmacros")), newTermName(method)))
+
     val result = restMethods.foldLeft(handler){ case (handler, (sym, reqMethod)) => reqMethod match {
-      case reqMethod if reqMethod =:= typeOf[GET] => addRoute(handler, "GET", sym)
-      case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, "POST", sym)
+      case reqMethod if reqMethod =:= typeOf[GET] => addRoute(handler, reqMethodExpr("Get"), sym)
+      case reqMethod if reqMethod =:= typeOf[POST] => addRoute(handler, reqMethodExpr("Post"), sym)
     }}
 
     result
