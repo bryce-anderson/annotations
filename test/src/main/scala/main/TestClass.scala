@@ -9,10 +9,10 @@ import javax.ws.rs._
  */
 
 class TestClass {
-//
-//  @POST
-//  def routeTwo(bar: String, @FormParam("name") name: String) =
-//    s"The route received the name $name"
+
+  @POST
+  def routeTwo(bar: String, @FormParam("name") name: String) =
+    s"The route received the name $name"
 
   @GET
   def routeThree(bar: String) =
@@ -25,7 +25,7 @@ class TestClass2 {
   def routeGet(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int = -1) =
     s"routeGet: bar = $bar, query = $query"
 
-//  @POST
-//  def routePost(bar: Int, @FormParam("form") form: Double = 3.2) =
-//    s"routePost: bar = $bar, form = $form"
+  @POST
+  def routePost(bar: Int, @FormParam("form") form: Double = 3.2) =
+    s"routePost: bar = $bar, form = $form"
 }
