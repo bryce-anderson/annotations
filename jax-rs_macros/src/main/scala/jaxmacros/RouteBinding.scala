@@ -26,18 +26,6 @@ object RouteBinding {
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
-    // TODO: could be reintroduced when the route is statically bound to check params.
-//    val (regexString: String, params: List[String]) = path.tree match {
-//      // need to get a regex and a list of param names.
-//      case Literal(Constant(pathString: String)) =>
-//        println(s"DEBUG: Found path: $pathString")
-//        val (str, params) = PathHelpers.breakdownPath(pathString)
-//        println(s"DEBUG: Found path params: $params")
-//        println(s"DEBUG: Found regex string: $str")
-//        (str, params)
-//      case _ => c.error(c.enclosingPosition, "Route path must be a literal constant.")
-//    }
-
     val tpe = weakTypeOf[A]
 
     val restMethods = tpe.members.collect{ case m: MethodSymbol
@@ -48,8 +36,6 @@ object RouteBinding {
 
     println("DEBUG: Rest method count: " + restMethods.length.toString)
 
-
-    // pathParamNames needs to be in the order found by the regex. Will use it to get regex indexes
     def buildClassRoute(sym: MethodSymbol): c.Expr[RouteMethod] = {
 
       if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
@@ -58,7 +44,7 @@ object RouteBinding {
       val pathParams = sym.paramss.map(_.filter { param =>
         println(s"Params: ${param.name} with annotations: ${param.annotations}")
         !param.annotations.exists(a => (a.tpe =:= typeOf[FormParam] || a.tpe =:= typeOf[QueryParam]) )
-      }.map(_.name.decoded)).flatten
+      }).flatten
 
       val formParams = sym.paramss.map(_.filter { param =>
         param.annotations.exists(_.tpe =:= typeOf[FormParam])
@@ -92,10 +78,16 @@ object RouteBinding {
       val newInstExpr = c.Expr[A](Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List()))
 
       val constructorParamsTree: List[List[Tree]] = sym.paramss.map( _.zipWithIndex.map { case (p, index) =>
-        if (pathParams.exists(_ == p.name.decoded)) {
+
+        if (p.typeSignature =:= typeOf[HttpServletRequest]) {
+          reqExpr.tree
+        }
+        else if (p.typeSignature =:= typeOf[HttpServletResponse]) {
+          respExpr.tree
+        }
+        else if (pathParams.exists(_ == p)) {
           primConvert(reify(routeParamstExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
         }
-
         else if (queryParams.exists(_ == p.name.decoded)) {
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")
@@ -105,7 +97,6 @@ object RouteBinding {
             .map(primConvert(p.typeSignature).splice)
             .getOrElse(defaultExpr.splice)).tree
         }
-
         else if (formParams.exists(_ == p.name.decoded)) {
           val formKey = p.annotations.find(_.tpe == typeOf[FormParam])
             .get.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", "")

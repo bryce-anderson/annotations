@@ -14,15 +14,16 @@ import scala.util.matching.Regex.Match
  */
 
 /*
-   TODO: Perhaps the handle should be passed a map of the route params and their values as strings?
-            This will allow the "buildup" of the route along the route tree.
-            - It comes at the cost of not being able to compile time check the route params for correctness.
-            - It does let the mapClass method take non-literal constants which might offer dynamic runtime route building
-   TODO: Deal with the method types. Strings will be error prone.
+      TODO: Deal with the method types. Strings will be error prone.
    TODO: Does the Option[Any] make sense? Should a proprietary type be created, or an either?
+   TODO: What to do about filters? Could be done through overriding handle and renderResponse, but should it be more explicit?
  */
 
-class RouteNode extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
+class RouteNode(path: String = "") extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
+
+  private val regex = buildRegex(if (path.startsWith("/")) path else {
+    if(path == "") "" else ("/" + path)
+  })
 
   protected val getRoutes = new MutableList[Route]()
   protected val postRoutes = new MutableList[Route]()
@@ -30,23 +31,31 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
   // This method should be overridden to match parts of the url.
   override def handle(path: String, pathParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
 
-    def searchList(it: Iterator[Route]): Option[Any] = {
-      if (it.hasNext) {
-        try {
-          it.next.handle(path, pathParams, req, resp) match {
-            case None => searchList(it)
-            case done @ Some(Unit) => done
-            case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
-          }
-        }  catch { case t: Throwable => handleException(t, path, req, resp); Some(Unit) }
-      } else None
-    }
+    regex.findFirstMatchIn(path).flatMap{ result =>
+      val subPathParams = if (result.groupCount != 0) {
+        pathParams ++ namedRegexMatchToMap(result)
+      } else pathParams
 
-    req.getMethod() match {
-      case "GET" => searchList(getRoutes.iterator)
-      case "POST" => searchList(postRoutes.iterator)
+      val subPath = path.substring(result.end)
 
-      case x => throw new NotImplementedError(s"Method type $x not implemented")
+      def searchList(it: Iterator[Route]): Option[Any] = {
+        if (it.hasNext) {
+          try {
+            it.next().handle(subPath, subPathParams, req, resp) match {
+              case None => searchList(it)
+              case done @ Some(Unit) => done
+              case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
+            }
+          }  catch { case t: Throwable => handleException(t, path, req, resp); Some(Unit) }
+        } else None
+      }
+
+      req.getMethod() match {
+        case "GET" => searchList(getRoutes.iterator)
+        case "POST" => searchList(postRoutes.iterator)
+
+        case x => throw new NotImplementedError(s"Method type $x not implemented")
+      }
     }
   }
 
@@ -60,8 +69,8 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
     self
   }
 
-  def addRoute(method: String, rawPath:String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
-    val regex = self.buildRegex(rawPath)
+  def addRoute(method: String, path: String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
+    val regex = self.buildRegex(if (path.startsWith("/")) path else "/" + path)
     val route = new Route {
         def handle(path: String, routeParams: Map[String, String], req: HttpServletRequest, resp: HttpServletResponse) =
           regex.findFirstMatchIn(path)
@@ -72,10 +81,10 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
     addRoute(method, route)
   }
 
-  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] {
+  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] { self =>
 
-    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = ???
-    def -(key: String): Map[String, String] = ???
+    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = self.iterator.toMap + kv
+    def -(key: String): Map[String, String] = self.iterator.toMap - key
 
     def get(key: String): Option[String] = {
       try {
@@ -93,15 +102,17 @@ class RouteNode extends Route with RouteExceptionHandler with ResultRenderer wit
 
 object RouteNode {
 
-  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
+  def apply(path: String = "") = new RouteNode(path)
 
-  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
-    import c.universe._
-    val expr = RouteBinding.bindClass_impl(c)(reify(new RouteNode()), path)
-
-    println(s"DEBUG: -----------------------------------\n $expr")
-    expr
-  }
+//  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
+//
+//  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
+//    import c.universe._
+//    val expr = RouteBinding.bindClass_impl(c)(reify(new RouteNode()), path)
+//
+//    println(s"DEBUG: -----------------------------------\n $expr")
+//    expr
+//  }
 
   type RouteContext = Context { type PrefixType = RouteNode }
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
