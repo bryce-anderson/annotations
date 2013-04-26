@@ -27,6 +27,7 @@ object RouteBinding {
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
     val tpe = weakTypeOf[A]
+    val TypeRef(_, classSym: Symbol, _: List[Type]) = tpe
 
     val restMethods = tpe.members.collect{ case m: MethodSymbol =>
       // To deal with a scalac bug
@@ -69,20 +70,34 @@ object RouteBinding {
       val respName = "resp"
       val respExpr = c.Expr[HttpServletResponse](Ident(newTermName(respName)))
       val routeParamsName = "routeParams"
-      val routeParamstExpr = c.Expr[RouteParams](Ident(newTermName(routeParamsName)))
+      val routeParamsExpr = c.Expr[RouteParams](Ident(newTermName(routeParamsName)))
       val queryName = "queryParams"
       val queryExpr = c.Expr[Map[String, String]](Ident(newTermName(queryName)))
 
-//      if (pathParamNames.sorted != pathParams.sorted)
-//        c.error(c.enclosingPosition,
-//          s"Route variables don't match unannotated method variables in method ${sym.name.decoded}.\n" +
-//          s"Path params: ${pathParamNames}\n" +
-//          s"Method params: ${pathParams.flatten}")
 
       // TODO: add class constructor support
       // Make expr's that will be used to generate an instance of the class if the route matches
+      val constructorParams = tpe.member(nme.CONSTRUCTOR).asMethod.paramss.map(_.zipWithIndex.map { case (p, index) =>
+        p match {
+          case p if p.typeSignature =:= typeOf[HttpServletRequest] => reqExpr.tree
+          case p if p.typeSignature =:= typeOf[HttpServletResponse] => respExpr.tree
+          case p if p.asTerm.isParamWithDefault =>
+            reify {
+              routeParamsExpr.splice.get(LIT(p.name.decoded).splice).map(primConvert(p.typeSignature).splice)
+                .getOrElse(getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index).splice)
+            }.tree
+
+          case p =>
+            primConvert(reify(routeParamsExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
+        }
+      })
+
       val instExpr = c.Expr[A](Ident(newTermName("clazz")))
-      val newInstExpr = c.Expr[A](Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List()))
+      //val newInstExpr = c.Expr[A](Apply(Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR), List()))
+      val newInstExpr = c.Expr[A](
+        constructorParams.foldLeft[Tree](Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR)){ case (tree, params) =>
+          Apply(tree, params)
+        })
 
       val constructorParamsTree: List[List[Tree]] = sym.paramss.map( _.zipWithIndex.map { case (p, index) =>
 
@@ -93,7 +108,7 @@ object RouteBinding {
           respExpr.tree
         }
         else if (pathParams.exists(_ == p)) {
-          primConvert(reify(routeParamstExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
+          primConvert(reify(routeParamsExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
         }
         else if (queryParams.exists(_ == p.name.decoded)) {
           val queryKey = p.annotations.find(_.tpe == typeOf[QueryParam])

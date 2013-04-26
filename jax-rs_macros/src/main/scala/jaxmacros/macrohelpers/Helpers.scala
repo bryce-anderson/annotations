@@ -60,15 +60,19 @@ class Helpers[C <: Context](val c1: C) {
 
   def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c1.Expr[T], methodName: String, paramIndex: Int) = {
     p.annotations.find(_.tpe == typeOf[DefaultValue])
-    .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
-    .map(PRIM(_, p.typeSignature))
+      .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
+      .map(PRIM(_, p.typeSignature))
       .orElse(p.asTerm.isParamWithDefault match {
-      case true =>  Some(c1.Expr(Select(classExpr.tree, // TODO: find canonical way to get default method names
-                  newTermName(methodName + "$default$" + (paramIndex + 1).toString))))
+      case true =>  Some(getMethodDefault(classExpr.tree, methodName, paramIndex))
       case false => None
     })
-    .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
+      .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
   }
+
+  def getMethodDefault(classTree: Tree, methodName: String, paramIndex: Int) = c1.Expr(
+    Select(classTree, // TODO: find canonical way to get default method names
+      newTermName(methodName + "$default$" + (paramIndex + 1).toString))
+  )
 }
 
 object Converters {

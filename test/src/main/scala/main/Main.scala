@@ -11,6 +11,7 @@ object Main {
      .mapClass[TestClass]("/foo/:bar/cats")
      .mapClass[TestClass2]("/testclass2/:bar/cats")
      .mapClass[TestClass3]("/testclass3/:bar")
+     .mapClass[WithConstrutor]("")
 
     val subRoute = new RouteNode("jimbo") with DoubleRenderer
     subRoute.mapClass[DoubleClass]("/double")

@@ -42,3 +42,8 @@ class DoubleClass {
   @GET
   def routeGet() = 3.14
 }
+
+class WithConstrutor(bar: String = "Default") {
+  @GET
+  def routeGet() = bar
+}
