@@ -28,7 +28,13 @@ object RouteBinding {
 
     val tpe = weakTypeOf[A]
 
-    val restMethods = tpe.members.collect{ case m: MethodSymbol
+    val restMethods = tpe.members.collect{ case m: MethodSymbol =>
+      // To deal with a scalac bug
+      // https://issues.scala-lang.org/browse/SI-7424
+      m.typeSignature // force loading method's signature
+      m.annotations.foreach(_.tpe) // force loading all the annotations
+      m
+    }.collect{ case m: MethodSymbol
         if m.annotations.exists(a => methodTypes.exists(_ =:= a.tpe)) => m }
       .map(m => (m, m.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).head.tpe))
       .toList
