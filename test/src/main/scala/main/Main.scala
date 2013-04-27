@@ -16,7 +16,7 @@ object Main {
 //    val subRoute = new RouteNode("jimbo") with DoubleRenderer
 //    subRoute.mapClass[DoubleClass]("/double")
 //
-//    rootNode.addLeafRoute(subRoute)
+//    rootNode.addRouteLeaf(subRoute)
 
 
     val context = new ServletContextHandler(ServletContextHandler.SESSIONS)

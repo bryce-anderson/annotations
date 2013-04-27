@@ -13,8 +13,6 @@ import scala.util.parsing.combinator.RegexParsers
  */
 case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil) {
   def apply(path: String): Option[(RouteParams, String)] = {
-    // This is a performance hotspot.  Hideous mutatations ahead.
-    //val m = regex.pattern.matcher(path)
     regex.findFirstMatchIn(path) map { m =>
       var multiParams = Map.empty[String, String]
       var i = 0
@@ -22,7 +20,6 @@ case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil) {
         i += 1
         val value = m.group(i)
         if (value != null) {
-          //val values = multiParams.getOrElse(name, Vector()) :+ value
           multiParams = multiParams.updated(name, value)
         }
       }

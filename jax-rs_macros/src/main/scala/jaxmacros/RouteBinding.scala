@@ -146,7 +146,7 @@ object RouteBinding {
     }
 
     def addRoute(handler: c.Expr[RouteNode], reqMethod: c.Expr[RequestMethod], methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
-      handler.splice.addLeafRoute(reqMethod.splice, path.splice, buildClassRoute(methodSymbol).splice)
+      handler.splice.addRouteLeaf(reqMethod.splice, path.splice, buildClassRoute(methodSymbol).splice)
     }
 
     def reqMethodExpr(method: String) = c.Expr[RequestMethod](Select(Ident(newTermName("jaxmacros")), newTermName(method)))

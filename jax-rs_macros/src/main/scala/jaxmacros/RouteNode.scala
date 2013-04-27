@@ -29,10 +29,6 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
     case path if path.startsWith("/") => path
     case path => "/" + path
   }, true)
-//    if (path.startsWith("/")) path else {
-//      //"/"
-//      if(path == "") "" else ("/" + path)
-//    }, true)
 
   protected val routes = new MutableList[Route]()
 
@@ -57,7 +53,7 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
-  def addLeafRoute(inMethod: RequestMethod, path: String, routeMethod: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): self.type = {
+  def addRouteLeaf(inMethod: RequestMethod, path: String, routeMethod: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): self.type = {
     val pathPattern = self.buildPath(if (path.startsWith("/")) path else "/" + path, false)
     val route = new Route {
       def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) = if (path.method == inMethod) {
@@ -70,21 +66,6 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
     addRoute(route)
   }
 
-//  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] { self =>
-//
-//    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = self.iterator.toMap + kv
-//    def -(key: String): Map[String, String] = self.iterator.toMap - key
-//
-//    def get(key: String): Option[String] = {
-//      try {
-//        Some(regex.group(key))
-//      } catch {
-//        case t: java.util.NoSuchElementException => None
-//      }
-//    }
-//
-//    def iterator: Iterator[(String, String)] = regex.groupNames.toIterator.map(key => (key, get(key).get) )
-//  }
 
   def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
 }
@@ -92,16 +73,6 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 object RouteNode {
 
   def apply(path: String = "") = new RouteNode(path)
-
-//  def mapClass[A](path: String): RouteNode = macro mapFromObject_impl[A]
-//
-//  def mapFromObject_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[RouteNode] = {
-//    import c.universe._
-//    val expr = RouteBinding.bindClass_impl(c)(reify(new RouteNode()), path)
-//
-//    println(s"DEBUG: -----------------------------------\n $expr")
-//    expr
-//  }
 
   type RouteContext = Context { type PrefixType = RouteNode }
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
