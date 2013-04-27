@@ -12,11 +12,11 @@ object Main {
      .mapClass[TestClass2]("/testclass2/:bar/cats")
      .mapClass[TestClass3]("/testclass3/:bar")
      .mapClass[WithConstrutor]("")
-
-    val subRoute = new RouteNode("jimbo") with DoubleRenderer
-    subRoute.mapClass[DoubleClass]("/double")
-
-    rootNode.addRoute(subRoute)
+//
+//    val subRoute = new RouteNode("jimbo") with DoubleRenderer
+//    subRoute.mapClass[DoubleClass]("/double")
+//
+//    rootNode.addLeafRoute(subRoute)
 
 
     val context = new ServletContextHandler(ServletContextHandler.SESSIONS)

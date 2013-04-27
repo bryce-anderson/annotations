@@ -23,22 +23,26 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
 
 
-  private val regex = buildRegex(if (path.startsWith("/")) path else {
-    if(path == "") "" else ("/" + path)
-  })
+  private val pathPattern = buildPath( path match {
+    case "" => ""
+    case "/" => ""
+    case path if path.startsWith("/") => path
+    case path => "/" + path
+  }, true)
+//    if (path.startsWith("/")) path else {
+//      //"/"
+//      if(path == "") "" else ("/" + path)
+//    }, true)
 
   protected val routes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
   override def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
-
-    regex.findFirstMatchIn(path.path).flatMap{ result =>
-      val subPath = path.path.substring(result.end)
-
+    pathPattern(path.path).flatMap{ case (params, subPath) =>
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
           try {
-            it.next().handle(path.subPath(subPath, namedRegexMatchToMap(result)), req, resp) match {
+            it.next().handle(path.subPath(subPath, params), req, resp) match {
               case None => searchList(it)
               case done @ Some(Unit) => done
               case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
@@ -53,34 +57,34 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
-  def addRoute(inMethod: RequestMethod, path: String, routeMethod: (Map[String, String], HttpServletRequest, HttpServletResponse) => Any): self.type = {
-    val regex = self.buildRegex(if (path.startsWith("/")) path else "/" + path)
+  def addLeafRoute(inMethod: RequestMethod, path: String, routeMethod: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): self.type = {
+    val pathPattern = self.buildPath(if (path.startsWith("/")) path else "/" + path, false)
     val route = new Route {
-      def method: RequestMethod = inMethod
-      def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) =
-          regex.findFirstMatchIn(path.path)
-            .map { matches =>
-            routeMethod(path.params ++ namedRegexMatchToMap(matches), req, resp)
-          }
-      }
+      def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) = if (path.method == inMethod) {
+        pathPattern(path.path)
+          .map { case (params, _) =>
+          routeMethod(path.params ++ params, req, resp)
+        }
+      } else None
+    }
     addRoute(route)
   }
 
-  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] { self =>
-
-    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = self.iterator.toMap + kv
-    def -(key: String): Map[String, String] = self.iterator.toMap - key
-
-    def get(key: String): Option[String] = {
-      try {
-        Some(regex.group(key))
-      } catch {
-        case t: java.util.NoSuchElementException => None
-      }
-    }
-
-    def iterator: Iterator[(String, String)] = regex.groupNames.toIterator.map(key => (key, get(key).get) )
-  }
+//  protected def namedRegexMatchToMap(regex: Match) = new Map[String, String] { self =>
+//
+//    def +[B1 >: String](kv: (String, B1)): Map[String, B1] = self.iterator.toMap + kv
+//    def -(key: String): Map[String, String] = self.iterator.toMap - key
+//
+//    def get(key: String): Option[String] = {
+//      try {
+//        Some(regex.group(key))
+//      } catch {
+//        case t: java.util.NoSuchElementException => None
+//      }
+//    }
+//
+//    def iterator: Iterator[(String, String)] = regex.groupNames.toIterator.map(key => (key, get(key).get) )
+//  }
 
   def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
 }

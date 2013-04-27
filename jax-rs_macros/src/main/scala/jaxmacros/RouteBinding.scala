@@ -13,7 +13,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 object RouteBinding {
 
-  type RouteMethod = Function3[RouteParams, HttpServletRequest, HttpServletResponse, Any]
+  type RouteMethod = (RouteParams, HttpServletRequest, HttpServletResponse) => Any
 
   def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
   def bindClass_impl[A: c.WeakTypeTag](c: Context)
@@ -146,7 +146,7 @@ object RouteBinding {
     }
 
     def addRoute(handler: c.Expr[RouteNode], reqMethod: c.Expr[RequestMethod], methodSymbol: MethodSymbol):c.Expr[RouteNode] = reify {
-      handler.splice.addRoute(reqMethod.splice, path.splice, buildClassRoute(methodSymbol).splice)
+      handler.splice.addLeafRoute(reqMethod.splice, path.splice, buildClassRoute(methodSymbol).splice)
     }
 
     def reqMethodExpr(method: String) = c.Expr[RequestMethod](Select(Ident(newTermName("jaxmacros")), newTermName(method)))

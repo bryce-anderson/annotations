@@ -22,6 +22,7 @@ trait Route {
 
 object Route {
   def apply(regex: Regex, method: RequestMethod)(route: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): Route = {
+    println(s"DEBUG: method: $method")
     new Route {
       def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) =
         if (path.method == method) {
