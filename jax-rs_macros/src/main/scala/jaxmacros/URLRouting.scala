@@ -76,13 +76,7 @@ class SinatraPathPatternParser extends RegexPathPatternParser {
         throw new IllegalArgumentException("Invalid path pattern: " + pattern)
     }
 
-  private def pathPattern = rep(token) ^^ { partialPatterns =>
-    partialPatterns match {
-      case Nil => PartialPathPattern("")
-      case h::Nil => h
-      case l => l.reduceLeft { _+_ }
-    }
-  }
+  private def pathPattern = rep(token) ^^ (_.foldLeft(PartialPathPattern(""))(_+_))
 
   private def token = splat | namedGroup | literal
 

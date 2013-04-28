@@ -2,6 +2,7 @@ package main
 
 import javax.ws.rs._
 import javax.servlet.http.HttpServletResponse
+import scala.concurrent.Future
 
 
 /**
@@ -24,7 +25,7 @@ class TestClass {
 class TestClass2 {
   @GET
   def routeGet(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int = -1) =
-    s"routeGet: bar = $bar, query = $query"
+    <h2>routeGet: bar = {bar}, query = {query}</h2>
 
   @POST
   def routePost(bar: Int, @FormParam("form") form: Double = 3.2) =
@@ -46,4 +47,10 @@ class DoubleClass {
 class WithConstrutor(bar: String = "Default") {
   @GET
   def routeGet() = bar
+}
+
+class FutureTest {
+  import scala.concurrent.ExecutionContext.Implicits.global
+  @GET
+  def routeGet() = Future("Hello future")
 }

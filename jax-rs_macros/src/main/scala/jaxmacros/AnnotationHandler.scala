@@ -8,7 +8,9 @@ import scala.language.experimental.macros
  * @author Bryce Anderson
  *         Created on 4/19/13
  */
-class AnnotationHandler(rootNode: RouteNode) extends HttpServlet { self =>
+abstract class AnnotationHandler extends HttpServlet { self =>
+
+  def rootNode: RouteNode
 
   // Virtual method of AbstractHandler
   override def service(req: HttpServletRequest, resp: HttpServletResponse) {
@@ -18,7 +20,7 @@ class AnnotationHandler(rootNode: RouteNode) extends HttpServlet { self =>
       case "PUT" => Put
       case "DELETE" => Delete
     }
-    val path = Path(req.getPathInfo, EmptyParams, method)
-    rootNode.handle(path, req, resp)
+    val rawPath = req.getRequestURI().substring(req.getContextPath().length())
+    rootNode.handle(Path(rawPath, EmptyParams, method), req, resp)
   }
 }

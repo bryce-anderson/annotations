@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 
-import spray.revolver.RevolverPlugin._
+//import spray.revolver.RevolverPlugin._
 
 object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Seq(
@@ -15,6 +15,7 @@ object BuildSettings {
 
 object MyBuild extends Build {
   import BuildSettings._
+  import com.github.siasia.WebPlugin.webSettings
 
   lazy val macros: Project = Project(
     "jax-rs_macros",
@@ -30,9 +31,11 @@ object MyBuild extends Build {
   lazy val test: Project = Project(
     "test",
     file("test"),
-    settings = buildSettings ++ Revolver.settings ++ Seq(
-      libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417",
-      libraryDependencies += "org.eclipse.jetty" % "jetty-servlet" % "9.0.2.v20130417"
+    //settings = buildSettings ++ Revolver.settings ++ Seq(
+    settings = buildSettings ++ webSettings ++ Seq(
+      //libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.0.2.v20130417",
+      //libraryDependencies += "org.eclipse.jetty" % "jetty-servlet" % "9.0.2.v20130417",
+      libraryDependencies += "org.eclipse.jetty" % "jetty-webapp" % "8.1.10.v20130312" % "container"
     )
   ) dependsOn(macros)
 }
