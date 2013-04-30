@@ -66,3 +66,6 @@ target
 .projectile
 .lib
 atlassian-ide-plugin.xml
+
+# project specific
+test/src/main/webapp/WEB-INF/appengine-web.xml
