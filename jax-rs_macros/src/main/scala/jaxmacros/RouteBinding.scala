@@ -12,11 +12,12 @@ import jaxed.QueryParams
  * @author Bryce Anderson
  *         Created on 4/18/13
  */
-class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: CONTEXT) {
+class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: CONTEXT)
+  extends macrohelpers.Helpers[c.type](c) {
 
   import c.universe._
-  val helpers = new macrohelpers.Helpers[c.type](c)
-  import helpers._
+//  val helpers = new macrohelpers.Helpers[c.type](c)
+//  import helpers._
 
   type RouteMethod = (REQUESTCONTEXT) => Any
 
@@ -42,10 +43,10 @@ class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: 
   }
 
   // TODO: Not implemented yet
-  def methodParamBuilder(symbol: c.universe.Symbol, classSym: ClassSymbol, annotation: Type, index: Int): Tree = ???
+  def methodParamBuilder(symbol: Symbol, classSym: ClassSymbol, annotation: Type, index: Int): Tree = ???
 
   //def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
-  def bindClass_impl[A: c.WeakTypeTag] : List[c.Expr[RouteMethod]] = {
+  def bindClass_impl[A: c.WeakTypeTag] : List[(MethodSymbol, c.Expr[RouteMethod])] = {
 
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
@@ -171,7 +172,7 @@ class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: 
 //    }}
 //
 //    result
-   val result = restMethods.map{case (sym: MethodSymbol, tpe: Type) => buildMethodRoute(sym,tpe)}
+   val result = restMethods.map{case (sym: MethodSymbol, tpe: Type) => (sym,buildMethodRoute(sym,tpe))}
     result
   }
 }

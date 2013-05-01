@@ -34,6 +34,7 @@ object MyBuild extends Build {
     file("jax-rs_macros"),
     settings = buildSettings ++ macroSettings ++ Seq (
       //libraryDependencies += rl
+      libraryDependencies += Specs2 % "test"
     )
   ) dependsOn(base)
   
