@@ -12,10 +12,17 @@ class MaxMacrosSpec extends Specification {
 
   class TestClass {
     @GET
-    def one() = "one"
+    def one() = {
+      println("One")
+      "one"
+    }
   }
 
   "Macros" should {
-    "Hello" in {}
+    "Build a Route without params" in {
+      val routes = jaxmacros.TestBuilder.buildClass[TestClass]
+      val minimal = MinimalContext("nowhere", jaxed.Get)
+      routes.get("one").map(f => f(minimal)) must_== Some("one")
+    }
   }
 }

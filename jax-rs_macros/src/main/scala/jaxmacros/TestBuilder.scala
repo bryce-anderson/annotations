@@ -12,9 +12,9 @@ import jaxed.{RequestMethod, RequestContext, Params, EmptyParams}
 /*
 Bootstrap the package, not doing much with this default type
  */
-case class MinimalContext(path: String, queryParams: Params = EmptyParams,
+case class MinimalContext(path: String, method: RequestMethod, queryParams: Params = EmptyParams,
                           routeParams: Params = EmptyParams,
-                          formParams: Params = EmptyParams, method: RequestMethod)
+                          formParams: Params = EmptyParams)
       extends RequestContext {
 
   type SelfType = MinimalContext
@@ -24,24 +24,25 @@ case class MinimalContext(path: String, queryParams: Params = EmptyParams,
 }
 
 object TestBuilder {
-  def buildClass[A] = macro buildClass_impl[A]
+  def buildClass[A]: Map[String, (MinimalContext => Any)] = macro buildClass_impl[A]
 
-  def buildClass_impl[A: c.WeakTypeTag](c: Context): c.Expr[Map[String, (RequestContext => Any)]] = {
+  def buildClass_impl[A: c.WeakTypeTag](c: Context): c.Expr[Map[String, (MinimalContext => Any)]] = {
     import c.universe._
 
-    val builder = new RouteBinding[MinimalContext, c.type](c)
+    val c1 = c   // Need to rename for making the builder, else get recursive value
+    val builder = new RouteBinding[MinimalContext]{  val c = c1 }
+    import builder.LIT
     val tpe = weakTypeOf[A]
 
-    val methods: List[(MethodSymbol, c.Expr[builder.RouteMethod])] = builder.bindClass_impl[A]
+    // TODO: How can I deal with this path dependent type? This works, but its ugly.
+    val methods = builder.bindClass_impl[A](typeOf[MinimalContext].asInstanceOf[builder.c.universe.Type])
 
-
-    methods.foldLeft(reify(Map.empty[String, MinimalContext=> Any])) { case (expr, (sym, method)) =>
+    val mapExpr = methods.foldLeft(reify(Map.empty[String, MinimalContext=> Any])) { case (expr, (sym, method)) =>
       reify {
-        expr.splice.+(LIT(sym.name.decoded).splice, method.splice)
+        expr.splice.+((LIT(sym.name.decoded).splice, method.splice))
       }
-      ???
     }
-
-    ???
+    println (mapExpr)
+    mapExpr
   }
 }

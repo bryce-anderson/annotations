@@ -12,14 +12,9 @@ import jaxed.QueryParams
  * @author Bryce Anderson
  *         Created on 4/18/13
  */
-class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: CONTEXT)
-  extends macrohelpers.Helpers[c.type](c) {
+trait RouteBinding[REQUESTCONTEXT <: RequestContext] extends macrohelpers.Helpers { self =>
 
   import c.universe._
-//  val helpers = new macrohelpers.Helpers[c.type](c)
-//  import helpers._
-
-  type RouteMethod = (REQUESTCONTEXT) => Any
 
   def reqContextName = "reqContext"
   def reqContextExpr = c.Expr[REQUESTCONTEXT](Ident(newTermName(reqContextName)))
@@ -46,13 +41,17 @@ class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: 
   def methodParamBuilder(symbol: Symbol, classSym: ClassSymbol, annotation: Type, index: Int): Tree = ???
 
   //def bindClass[A](handler: RouteNode, path: String) = macro bindClass_impl[A]
-  def bindClass_impl[A: c.WeakTypeTag] : List[(MethodSymbol, c.Expr[RouteMethod])] = {
+  def bindClass_impl[A: c.WeakTypeTag](reqContextTpe: Type) : List[(MethodSymbol, c.Expr[(REQUESTCONTEXT) => Any])] = {
 
 
     val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
     val tpe = weakTypeOf[A]
     val TypeRef(_, classSym: ClassSymbol, _: List[Type]) = tpe
+
+    //val reqContextTpe = weakTypeOf[REQUESTCONTEXT]
+    println(s"Request Context Type: ${reqContextTpe.getClass}")
+    val TypeRef(_, reqCtxSym: ClassSymbol, _: List[Type]) = reqContextTpe
 
     val restMethods = tpe.members.collect{ case m: MethodSymbol =>
       // To deal with a scalac bug
@@ -68,7 +67,7 @@ class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: 
 
     println("DEBUG: Rest method count: " + restMethods.length.toString)
 
-    def buildMethodRoute(sym: MethodSymbol, requestMethod: Type): c.Expr[RouteMethod] = {
+    def buildMethodRoute(sym: MethodSymbol, requestMethod: Type): c.Expr[(REQUESTCONTEXT) => Any] = {
 
       if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
         c.error(c.enclosingPosition, s"Method ${sym.name.decoded} has more than one REST annotation.")
@@ -147,14 +146,26 @@ class RouteBinding[REQUESTCONTEXT <: RequestContext, CONTEXT <: Context](val c: 
       val routeTree = Apply(Select(instExpr.tree, sym.name), methodParamsTree.flatten)
       val routeResult = c.Expr[Any](routeTree)
 
-      reify {
-        new RouteMethod {
-          def apply(routeParams: REQUESTCONTEXT): Any = {
-            val clazz = newInstExpr.splice   // Name is important, trees depend on it
-            routeResult.splice
-          }
-        }
-      }
+//      reify {
+//        new ((REQUESTCONTEXT) => Any) {
+//          def apply(routeParams: REQUESTCONTEXT): Any = {
+//            val clazz = newInstExpr.splice   // Name is important, trees depend on it
+//            routeResult.splice
+//          }
+//        }
+//      }
+      Function
+      c.Expr[RequestContext=>Any](
+        Function(List(
+          ValDef(Modifiers(Flag.PARAM),
+            newTermName(routeParamsName),
+            Ident(reqCtxSym),
+            EmptyTree)
+        ), reify{
+          val clazz = newInstExpr.splice   // Name is important, trees depend on it
+          routeResult.splice
+        }.tree)
+      )
     }
 
     // Now we have a list of method expressions representing (REQUESTCONTEXT) => Any.

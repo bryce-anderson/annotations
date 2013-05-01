@@ -7,8 +7,9 @@ import javax.ws.rs.DefaultValue
  * @author Bryce Anderson
  *         Created on 4/20/13
  */
-class Helpers[C <: Context](val c1: C) {
-  import c1.universe._
+trait Helpers { self =>
+  val c: Context
+  import c.universe._
 
   // Gives the type needed to instance the class. Will only be handy later when the type is more complex
   def typeArgumentTree(t: Type): Tree = t match {
@@ -17,9 +18,9 @@ class Helpers[C <: Context](val c1: C) {
     case _                                => Ident(t.typeSymbol.name)
   }
 
-  def LIT[A](in: A) = c1.Expr[A](Literal(Constant(in)))
+  def LIT[A](in: A) = c.Expr[A](Literal(Constant(in)))
 
-  def PRIM(str: String, tpe: c1.Type): c1.Expr[_] = {
+  def PRIM(str: String, tpe: c.Type): c.Expr[_] = {
     try {
       tpe match {
         case t if t =:= typeOf[Int] => LIT(str.toInt)
@@ -31,34 +32,34 @@ class Helpers[C <: Context](val c1: C) {
     } catch {
       case t: java.lang.NumberFormatException =>
         val err = s"Cannot convert value '$str' to type ${tpe}"
-        c1.error(c1.enclosingPosition, err)
+        c.error(c.enclosingPosition, err)
         throw new java.lang.IllegalArgumentException(err)
     }
   }
 
-  def primConvert(str: c1.Expr[String], tpe: c1.Type) = tpe match {
+  def primConvert(str: c.Expr[String], tpe: c.Type) = tpe match {
     case t if tpe =:= typeOf[Int] => reify(Converters.strToInt(str.splice))
     case t if tpe =:= typeOf[Long] => reify(Converters.strToLong(str.splice))
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(str.splice))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(str.splice))
     case t if tpe =:= typeOf[String] => str
     case t =>
-      c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+      c.error(c.enclosingPosition, s"type '$tpe' is not a primitive.")
       throw new java.util.UnknownFormatConversionException(s"Cannot convert type $tpe")
   }
 
-  def primConvert(tpe: c1.Type) = tpe match {
+  def primConvert(tpe: c.Type) = tpe match {
     case t if tpe =:= typeOf[Int] => reify(Converters.strToInt(_))
     case t if tpe =:= typeOf[Long] => reify(Converters.strToLong(_))
     case t if tpe =:= typeOf[Float] => reify(Converters.strToFloat(_))
     case t if tpe =:= typeOf[Double] => reify(Converters.strToDouble(_))
     case t if tpe =:= typeOf[String] => reify(Converters.strToStr(_))
     case t =>
-      c1.error(c1.enclosingPosition, s"type '$tpe' is not a primitive.")
+      c.error(c.enclosingPosition, s"type '$tpe' is not a primitive.")
       throw new java.util.UnknownFormatConversionException(s"Cannot convert type $tpe")
   }
 
-  def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c1.Expr[T], methodName: String, paramIndex: Int) = {
+  def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c.Expr[T], methodName: String, paramIndex: Int) = {
     p.annotations.find(_.tpe == typeOf[DefaultValue])
       .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
       .map(PRIM(_, p.typeSignature))
@@ -69,7 +70,7 @@ class Helpers[C <: Context](val c1: C) {
       .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
   }
 
-  def getMethodDefault(classTree: Tree, methodName: String, paramIndex: Int) = c1.Expr(
+  def getMethodDefault(classTree: Tree, methodName: String, paramIndex: Int) = c.Expr(
     Select(classTree, // TODO: find canonical way to get default method names
       newTermName(methodName + "$default$" + (paramIndex + 1).toString))
   )
