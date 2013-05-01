@@ -1,4 +1,4 @@
-package jaxmacros
+package servletmacros
 
 import scala.collection.mutable.MutableList
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -7,6 +7,10 @@ import scala.language.experimental.macros
 import scala.reflect.macros.Context
 import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
+import servletmacros.ResultRenderer
+import jaxed._
+import scala.Some
+import scala.Some
 
 /**
  * @author Bryce Anderson
@@ -33,7 +37,7 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
   protected val routes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
-  override def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
+  override def handle(path: RequestContext, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
     pathPattern(path.path).flatMap{ case (params, subPath) =>
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
@@ -56,7 +60,7 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
   def addRouteLeaf(inMethod: RequestMethod, path: String, routeMethod: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): self.type = {
     val pathPattern = self.buildPath(if (path.startsWith("/")) path else "/" + path, false)
     val route = new Route {
-      def handle(path: Path, req: HttpServletRequest, resp: HttpServletResponse) = if (path.method == inMethod) {
+      def handle(path: RequestContext, req: HttpServletRequest, resp: HttpServletResponse) = if (path.method == inMethod) {
         pathPattern(path.path)
           .map { case (params, _) =>
           routeMethod(path.params ++ params, req, resp)

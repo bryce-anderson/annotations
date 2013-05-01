@@ -1,6 +1,6 @@
-package jaxmacros.macrohelpers
+package jaxed
 
-import rl.UrlCodingUtils.urlDecode
+import rl.UrlCodingUtils._
 
 /**
  * @author Bryce Anderson

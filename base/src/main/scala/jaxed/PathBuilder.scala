@@ -1,4 +1,4 @@
-package jaxmacros
+package jaxed
 
 import scala.util.matching.Regex
 

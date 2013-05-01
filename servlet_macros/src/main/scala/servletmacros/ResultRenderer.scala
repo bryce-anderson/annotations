@@ -1,4 +1,4 @@
-package jaxmacros
+package servletmacros
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.concurrent.{ExecutionContext, Future}

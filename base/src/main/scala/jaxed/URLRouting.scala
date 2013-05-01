@@ -1,4 +1,4 @@
-package jaxmacros
+package jaxed
 
 /*
 This was lifted nearly entirely from the Scalatra project: pathPatternParsers.scala
@@ -12,7 +12,7 @@ import scala.util.parsing.combinator.RegexParsers
  * parameters.
  */
 case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil) {
-  def apply(path: String): Option[(RouteParams, String)] = {
+  def apply(path: String): Option[(Params, String)] = {
     regex.findFirstMatchIn(path) map { m =>
       var multiParams = Map.empty[String, String]
       var i = 0
@@ -98,7 +98,7 @@ object SinatraPathPatternParser {
 }
 
 /**
- * Path pattern parser based on Rack::Mount::Strexp, which is used by Rails.
+ * RequestContext pattern parser based on Rack::Mount::Strexp, which is used by Rails.
  */
 //class RailsPathPatternParser extends RegexPathPatternParser {
 //  def apply(pattern: String): PathPattern =
