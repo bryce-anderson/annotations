@@ -30,12 +30,10 @@ object TestBuilder {
     import c.universe._
 
     val c1 = c   // Need to rename for making the builder, else get recursive value
-    val builder = new RouteBinding[MinimalContext]{  val c = c1 }
+    val builder = new RouteBinding{  val c = c1 }
     import builder.LIT
-    val tpe = weakTypeOf[A]
 
-    // TODO: How can I deal with this path dependent type? This works, but its ugly.
-    val methods = builder.bindClass_impl[A](typeOf[MinimalContext].asInstanceOf[builder.c.universe.Type])
+    val methods = builder.genMethodExprs[A, MinimalContext] // List[(name: String, method: MinimalContext => Any)]
 
     val mapExpr = methods.foldLeft(reify(Map.empty[String, MinimalContext=> Any])) { case (expr, (sym, method)) =>
       reify {
