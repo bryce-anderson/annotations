@@ -18,24 +18,30 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
   def reqContextName = "reqContext"
   def reqContextExpr = c.Expr[RequestContext](Ident(newTermName(reqContextName)))
-  def routeParamsName = "routeParams"
-  def routeParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(routeParamsName)))
-  def queryName = "queryParams"
-  def queryExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(queryName)))
-  def formParamsName = "formParams"
-  def formParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(formParamsName)))
+//  def routeParamsName = "routeParams"
+//  def routeParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(routeParamsName)))
+//  def queryName = "queryParams"
+//  def queryExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(queryName)))
+//  def formParamsName = "formParams"
+//  def formParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(formParamsName)))
   def instExpr = c.Expr(Ident(newTermName("clazz")))
 
   // Should be overridden and stacked to include new types of symbols
-  def constructorBuilder(symbol: Symbol, classSym: ClassSymbol, index: Int): Tree = symbol match {
-    case p if p.asTerm.isParamWithDefault =>
+  def constructorBuilder(symbol: Symbol, classSym: ClassSymbol, index: Int): Tree = { //symbol match {
+    //case p if p.asTerm.isParamWithDefault =>
+    val alternate = {
+      if (symbol.asTerm.isParamWithDefault)
+        getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
+      else reify(throw new java.util.NoSuchElementException("Constructor argument not found"))
+    }
+
     reify {
-      routeParamsExpr.splice.get(LIT(p.name.decoded).splice).map(primConvert(p.typeSignature).splice)
-        .getOrElse(getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index).splice)
+      reqContextExpr.splice.routeParam(LIT(symbol.name.decoded).splice).map(primConvert(symbol.typeSignature).splice)
+        .getOrElse(alternate.splice)
     }.tree
 
-    case p =>
-      primConvert(reify(routeParamsExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
+//    case p =>
+//      primConvert(reify(routeParamsExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
   }
 
   // TODO: This method should be overridden and stacked to build more complex argument trees
@@ -50,7 +56,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
       val defaultExpr = getDefaultParamExpr(symbol, queryKey, instExpr, symbol.name.decoded, index)
 
-      reify(queryExpr.splice.get(LIT(queryKey).splice)
+      reify(reqContextExpr.splice.queryParam(LIT(queryKey).splice)
         .map(primConvert(symbol.typeSignature).splice)
         .getOrElse(defaultExpr.splice)).tree
     }
@@ -62,12 +68,12 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
       val defaultExpr = getDefaultParamExpr(symbol, formKey, instExpr, symbol.name.decoded, index)
 
-      reify(formParamsExpr.splice.get(LIT(formKey).splice)
+      reify(reqContextExpr.splice.formParam(LIT(formKey).splice)
         .map(primConvert(symbol.typeSignature).splice)
         .getOrElse(defaultExpr.splice)).tree
     } else  {   // Must be a route param
       val defaultExpr = getDefaultParamExpr(symbol, symbol.name.decoded, instExpr, symbol.name.decoded, index)
-      reify(routeParamsExpr.splice.get(LIT(symbol.name.decoded).splice)
+      reify(reqContextExpr.splice.routeParam(LIT(symbol.name.decoded).splice)
         .map(primConvert(symbol.typeSignature).splice)
         .getOrElse(defaultExpr.splice)
       ).tree

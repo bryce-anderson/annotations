@@ -19,6 +19,13 @@ case class MinimalContext(path: String, method: RequestMethod, queryParams: Para
 
   type SelfType = MinimalContext
 
+
+  def queryParam(name: String): Option[String] = queryParams.get(name)
+
+  def routeParam(name: String): Option[String] = routeParams.get(name)
+
+  def formParam(name: String): Option[String] = formParams.get(name)
+
   def subPath(newPath: String, newParams: jaxed.Params): MinimalContext#SelfType =
     this.copy(path = newPath, routeParams = routeParams ++ newParams)
 }

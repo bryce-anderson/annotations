@@ -8,9 +8,4 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 class ServletBinding {
 
-  val reqName = "req"
-  val reqExpr = c.Expr[HttpServletRequest](Ident(newTermName(reqName)))
-  val respName = "resp"
-  val respExpr = c.Expr[HttpServletResponse](Ident(newTermName(respName)))
-
 }

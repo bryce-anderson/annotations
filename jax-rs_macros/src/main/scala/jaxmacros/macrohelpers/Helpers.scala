@@ -67,7 +67,7 @@ trait Helpers { self =>
       case true =>  Some(getMethodDefault(classExpr.tree, methodName, paramIndex))
       case false => None
     })
-      .getOrElse(reify(throw new IllegalArgumentException(s"missing query param: ${LIT(name).splice}")))
+      .getOrElse(reify(throw new IllegalArgumentException(s"missing param: ${LIT(name).splice}")))
   }
 
   def getMethodDefault(classTree: Tree, methodName: String, paramIndex: Int) = c.Expr(
