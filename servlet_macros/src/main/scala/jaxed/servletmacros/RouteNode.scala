@@ -1,3 +1,4 @@
+package jaxed
 package servletmacros
 
 import scala.collection.mutable.MutableList
@@ -5,12 +6,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
-import scala.util.matching.Regex
-import scala.util.matching.Regex.Match
-import servletmacros.ResultRenderer
 import jaxed._
-import scala.Some
-import scala.Some
 
 /**
  * @author Bryce Anderson
@@ -37,17 +33,17 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
   protected val routes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
-  override def handle(path: RequestContext, req: HttpServletRequest, resp: HttpServletResponse): Option[Any] = {
-    pathPattern(path.path).flatMap{ case (params, subPath) =>
+  override def handle(context: ServletReqContext): Option[Any] = {
+    pathPattern(context.path).flatMap{ case (params, subPath) =>
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
           try {
-            it.next().handle(path.subPath(subPath, params), req, resp) match {
+            it.next().handle(context.subPath(subPath, params)) match {
               case None => searchList(it)
               case done @ Some(Unit) => done
-              case Some(result) => self.renderResponse(req, resp, result); Some(Unit)
+              case Some(result) => self.renderResponse(context.req, context.resp, result); Some(Unit)
             }
-          }  catch { case t: Throwable => handleException(t, path, req, resp); Some(Unit) }
+          }  catch { case t: Throwable => handleException(t, context); Some(Unit) }
         } else None
       }
 
@@ -57,19 +53,18 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
-  def addRouteLeaf(inMethod: RequestMethod, path: String, routeMethod: (RouteParams, HttpServletRequest, HttpServletResponse) => Any): self.type = {
+  def addRouteLeaf(inMethod: RequestMethod, path: String, routeMethod: (ServletReqContext) => Any): self.type = {
     val pathPattern = self.buildPath(if (path.startsWith("/")) path else "/" + path, false)
     val route = new Route {
-      def handle(path: RequestContext, req: HttpServletRequest, resp: HttpServletResponse) = if (path.method == inMethod) {
-        pathPattern(path.path)
+      def handle(context: ServletReqContext) = if (context.method == inMethod) {
+        pathPattern(context.path)
           .map { case (params, _) =>
-          routeMethod(path.params ++ params, req, resp)
+          routeMethod(context.addParams(params))
         }
       } else None
     }
     addRoute(route)
   }
-
 
   def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
 }
@@ -82,7 +77,7 @@ object RouteNode {
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
     import c.universe._
     val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
-    val expr = RouteBinding.bindClass_impl(c)(c.prefix, path)
+    val expr = ServletBinding.bindClass_impl(c)(c.prefix, path)
 
     println(s"DEBUG: -----------------------------------\n $expr")
     expr

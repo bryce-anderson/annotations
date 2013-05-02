@@ -9,7 +9,8 @@ object BuildSettings {
     version := "0.0.1",
     scalaVersion := "2.10.1",
     scalacOptions ++= Seq(),
-    libraryDependencies += "javax.ws.rs" % "jsr311-api" % "1.1.1"
+    libraryDependencies += "javax.ws.rs" % "jsr311-api" % "1.1.1",
+    libraryDependencies += Specs2 % "test"
   )
   
   val macroSettings = Seq(
@@ -34,7 +35,6 @@ object MyBuild extends Build {
     file("jax-rs_macros"),
     settings = buildSettings ++ macroSettings ++ Seq (
       //libraryDependencies += rl
-      libraryDependencies += Specs2 % "test"
     )
   ) dependsOn(base)
   

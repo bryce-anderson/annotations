@@ -1,7 +1,8 @@
-package jaxed
+package jaxed.servletmacros
 
 import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
+import jaxed.RequestContext
 
 /**
  * @author Bryce Anderson
@@ -16,7 +17,7 @@ import scala.util.matching.Regex.Match
  */
 
 trait Route {
-  def handle(path: RequestContext): Option[Any]
+  def handle(path: ServletReqContext): Option[Any]
 }
 
 //object Route {

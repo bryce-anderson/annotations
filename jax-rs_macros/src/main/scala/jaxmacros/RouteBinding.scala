@@ -1,11 +1,8 @@
 package jaxmacros
 
 import language.experimental.macros
-import scala.reflect.macros.Context
 import javax.ws.rs.{GET, POST, DELETE, PUT, FormParam, QueryParam, DefaultValue}
-import scala.util.matching.Regex
 import jaxed._
-import jaxed.QueryParams
 
 
 /**
@@ -18,12 +15,6 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
   def reqContextName = "reqContext"
   def reqContextExpr = c.Expr[RequestContext](Ident(newTermName(reqContextName)))
-//  def routeParamsName = "routeParams"
-//  def routeParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(routeParamsName)))
-//  def queryName = "queryParams"
-//  def queryExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(queryName)))
-//  def formParamsName = "formParams"
-//  def formParamsExpr = c.Expr[Params](Select(reqContextExpr.tree, newTermName(formParamsName)))
   def instExpr = c.Expr(Ident(newTermName("clazz")))
 
   // Should be overridden and stacked to include new types of symbols
@@ -128,7 +119,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
       // TODO: Do we want to flatten the methodParamsTree, or recursively apply like the class constructor
       val routeTree = Apply(Select(instExpr.tree, sym.name), methodParamsTree.flatten)
       val routeResult = c.Expr[Any](routeTree)
-      c.Expr[RT=>Any](
+      c.Expr[RT => Any](
         Function(List(
           ValDef(Modifiers(Flag.PARAM),
             newTermName(reqContextName),

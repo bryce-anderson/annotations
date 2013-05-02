@@ -1,3 +1,4 @@
+package jaxed
 package servletmacros
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}

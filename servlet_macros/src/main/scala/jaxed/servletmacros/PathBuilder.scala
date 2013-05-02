@@ -1,6 +1,7 @@
-package jaxed
+package jaxed.servletmacros
 
 import scala.util.matching.Regex
+import jaxed.{SinatraPathPatternParser, PathPattern}
 
 /**
  * @author Bryce Anderson

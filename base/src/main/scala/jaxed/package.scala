@@ -7,14 +7,6 @@ package object jaxed {
   type Params = Map[String, String]
   val EmptyParams = Map.empty[String, String]
 
-  trait RequestContext {
-    def queryParam(name: String): Option[String]
-    def routeParam(name: String): Option[String]
-    def formParam(name: String): Option[String]
-    // def path: String
-    // def method: RequestMethod
-  }
-
   // case class Route(paramNames: Set[String], url: String)
 
 
