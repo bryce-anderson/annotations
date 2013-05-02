@@ -16,7 +16,7 @@ Trait that takes responsibility for rendering the result of a route. To add new 
 more traits and use a super call to pass results down the chain.
  */
 trait ResultRenderer {
-  def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Unit  = result match {
+  def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Any  = result match {
     case _: scala.runtime.BoxedUnit => // Nothing
     case s: String => resp.getWriter().write(s)
     case d: Array[Byte] => resp.getOutputStream().write(d)
@@ -33,5 +33,5 @@ trait ResultRenderer {
     case e => throw new java.lang.UnsupportedOperationException(s"Type '${e.getClass}' not supported by the pipeline. " +
                       "Try mixing a ResultRenderer trait into the route node.")
 
-  }
+  }; Unit
 }

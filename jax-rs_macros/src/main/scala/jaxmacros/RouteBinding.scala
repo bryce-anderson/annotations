@@ -90,9 +90,6 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
       .map(m => (m, m.annotations.filter(a => restTypes.exists(_ =:= a.tpe)).head.tpe))
       .toList
 
-
-    println("DEBUG: Rest method count: " + restMethods.length.toString)
-
     def buildMethodRoute(sym: MethodSymbol, requestMethod: Type): c.Expr[(RT) => Any] = {
 
       if (sym.annotations.filter(a => restTypes.exists(_ =:= a.tpe)).length > 1)

@@ -35,13 +35,15 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
   // This method should be overridden to match parts of the url.
   override def handle(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
+      val subcontext = context.subPath(subPath, params)
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
           try {
-            it.next().handle(context.subPath(subPath, params)) match {
+            it.next().handle(subcontext) match {
               case None => searchList(it)
               case done @ Some(Unit) => done
-              case Some(result) => self.renderResponse(context.req, context.resp, result); Some(Unit)
+              case done @ Some(DoneResult(result)) => done
+              case Some(result) => Some(self.renderResponse(context.req, context.resp, result))
             }
           }  catch { case t: Throwable => handleException(t, context); Some(Unit) }
         } else None
@@ -76,14 +78,13 @@ object RouteNode {
   type RouteContext = Context { type PrefixType = RouteNode }
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
     import c.universe._
-    val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
 
     val _c = c
     val servletBinding = new ServletBinding {
       type RT = ServletReqContext
       val c: Context = _c
     }
-    val expr = servletBinding.bindClass_impl(c.prefix.asInstanceOf[servletBinding.c.Expr[RouteNode]],
+    val expr = servletBinding.bindClass_impl[A](c.prefix.asInstanceOf[servletBinding.c.Expr[RouteNode]],
       path.asInstanceOf[servletBinding.c.Expr[String]])
 
     println(s"DEBUG: -----------------------------------\n $expr")
