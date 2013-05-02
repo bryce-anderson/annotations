@@ -8,7 +8,6 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  *         Created on 5/2/13
  */
 trait MockRenderer extends ResultRenderer {
-  override def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Any = {
+  override def renderResponse(req: HttpServletRequest, resp: HttpServletResponse, result: Any): Any =
     DoneResult(result)
-  }
 }

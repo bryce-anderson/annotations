@@ -7,7 +7,8 @@ import rl.UrlCodingUtils._
  *         Created on 4/20/13
  */
 object QueryParams {
-  def apply(queryStr: String) = queryStr.split('&')
+  def apply(queryStr: String) =
+    queryStr.split('&')
     .map( str =>
       str.indexOf('=') match {
         case -1 => ("", "")  // Simply discard

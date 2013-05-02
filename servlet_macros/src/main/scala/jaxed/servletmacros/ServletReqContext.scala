@@ -13,7 +13,11 @@ case class ServletReqContext(path: String,
                              req: HttpServletRequest,
                              resp: HttpServletResponse) extends RequestContext { self =>
 
-  private lazy val queryParams = QueryParams.apply(req.getQueryString)
+  private lazy val queryParams = {
+    val str = req.getQueryString
+    if (str != null) QueryParams.apply(str)
+    else EmptyParams
+  }
 
   def queryParam(name: String): Option[String] = queryParams.get(name)
 

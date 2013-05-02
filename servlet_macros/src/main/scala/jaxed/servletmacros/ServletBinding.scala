@@ -22,11 +22,11 @@ trait ServletBinding extends RouteBinding { self =>
     case _ => None
   }
 
-  override def constructorBuilder(symbol: Symbol, classSym: ClassSymbol, index: Int): Tree =
-    reqRespTree(symbol) getOrElse super.constructorBuilder(symbol, classSym, index)
+  override def constructorBuilder(paramSym: Symbol, classSym: ClassSymbol, index: Int): Tree =
+    reqRespTree(paramSym) getOrElse super.constructorBuilder(paramSym, classSym, index)
 
-  override def methodParamBuilder(symbol: Symbol, annotation: Type, index: Int): Tree =
-    reqRespTree(symbol) getOrElse super.methodParamBuilder(symbol, annotation, index)
+  override def methodParamBuilder(paramSym: Symbol, methodSymbol: MethodSymbol, annotation: Type, index: Int): Tree =
+    reqRespTree(paramSym) getOrElse super.methodParamBuilder(paramSym, methodSymbol, annotation, index)
 
 
   def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[RouteNode] = {

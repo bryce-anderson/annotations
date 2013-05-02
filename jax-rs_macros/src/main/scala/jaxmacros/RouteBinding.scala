@@ -23,51 +23,52 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
   def instExpr = c.Expr(Ident(newTermName("clazz")))
 
   // Should be overridden and stacked to include new types of symbols
-  def constructorBuilder(symbol: Symbol, classSym: ClassSymbol, index: Int): Tree = { //symbol match {
+  def constructorBuilder(paramSymbol: Symbol, classSym: ClassSymbol, index: Int): Tree = { //paramSymbol match {
     //case p if p.asTerm.isParamWithDefault =>
     val alternate = {
-      if (symbol.asTerm.isParamWithDefault)
+      if (paramSymbol.asTerm.isParamWithDefault)
         getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
       else reify(throw new java.util.NoSuchElementException("Constructor argument not found"))
     }
 
     reify {
-      reqContextExpr.splice.routeParam(LIT(symbol.name.decoded).splice).map(primConvert(symbol.typeSignature).splice)
+      reqContextExpr.splice.routeParam(LIT(paramSymbol.name.decoded).splice).map(primConvert(paramSymbol.typeSignature).splice)
         .getOrElse(alternate.splice)
     }.tree
   }
 
   // TODO: This method should be overridden and stacked to build more complex argument trees
-  def methodParamBuilder(symbol: Symbol, annotation: Type, index: Int): Tree = {
+  def methodParamBuilder(paramSym: Symbol, methodSym: MethodSymbol, restType: Type, index: Int): Tree = {
 
-    if (symbol.annotations.exists(_.tpe =:= typeOf[QueryParam])) {
-      val queryKey = symbol.annotations.find(_.tpe =:= typeOf[QueryParam])
+    if (paramSym.annotations.exists(_.tpe =:= typeOf[QueryParam])) {
+      val queryKey = paramSym.annotations.find(_.tpe =:= typeOf[QueryParam])
         .map{i => println(s"What are we: ${i.javaArgs}"); i}
         .get.javaArgs.get(newTermName("value"))
         .map(_.toString.replaceAll("\"", ""))
         .getOrElse("")       // Will throw an error during compilation
 
-      val defaultExpr = getDefaultParamExpr(symbol, queryKey, instExpr, symbol.name.decoded, index)
+      // TODO: Do we want the methodSym.name to be encoded or decoded?
+      val defaultExpr = getDefaultParamExpr(paramSym, queryKey, instExpr, methodSym.name.encoded, index)
 
       reify(reqContextExpr.splice.queryParam(LIT(queryKey).splice)
-        .map(primConvert(symbol.typeSignature).splice)
+        .map(primConvert(paramSym.typeSignature).splice)
         .getOrElse(defaultExpr.splice)).tree
     }
-    else if (symbol.annotations.exists(_.tpe == typeOf[FormParam])) {
-      val formKey = symbol.annotations.find(_.tpe =:= typeOf[FormParam])
+    else if (paramSym.annotations.exists(_.tpe == typeOf[FormParam])) {
+      val formKey = paramSym.annotations.find(_.tpe =:= typeOf[FormParam])
         .get.javaArgs.get(newTermName("value"))
         .map(_.toString.replaceAll("\"", ""))
         .getOrElse("")       // Will throw an error during compilation
 
-      val defaultExpr = getDefaultParamExpr(symbol, formKey, instExpr, symbol.name.decoded, index)
+      val defaultExpr = getDefaultParamExpr(paramSym, formKey, instExpr, methodSym.name.encoded, index)
 
       reify(reqContextExpr.splice.formParam(LIT(formKey).splice)
-        .map(primConvert(symbol.typeSignature).splice)
+        .map(primConvert(paramSym.typeSignature).splice)
         .getOrElse(defaultExpr.splice)).tree
     } else  {   // Must be a route param
-      val defaultExpr = getDefaultParamExpr(symbol, symbol.name.decoded, instExpr, symbol.name.decoded, index)
-      reify(reqContextExpr.splice.routeParam(LIT(symbol.name.decoded).splice)
-        .map(primConvert(symbol.typeSignature).splice)
+      val defaultExpr = getDefaultParamExpr(paramSym, paramSym.name.decoded, instExpr, paramSym.name.decoded, index)
+      reify(reqContextExpr.splice.routeParam(LIT(paramSym.name.decoded).splice)
+        .map(primConvert(paramSym.typeSignature).splice)
         .getOrElse(defaultExpr.splice)
       ).tree
     }
@@ -79,6 +80,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
     val TypeRef(_, classSym: ClassSymbol, _: List[Type]) = tpe
     val TypeRef(_, reqCtxSym: ClassSymbol, _: List[Type]) = weakTypeOf[RT]
 
+    // Collect the methods annotated
     val restMethods = tpe.members.collect{ case m: MethodSymbol =>
       // To deal with a scalac bug
       // https://issues.scala-lang.org/browse/SI-7424
@@ -108,7 +110,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
       val methodParamsTree: List[List[Tree]] = sym.paramss
         .map( _.zipWithIndex.map { case (p, index) =>
-          methodParamBuilder(p, requestMethod, index)
+          methodParamBuilder(p, sym, requestMethod, index)
         })
 
       // TODO: Do we want to flatten the methodParamsTree, or recursively apply like the class constructor

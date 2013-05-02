@@ -53,5 +53,5 @@ object MyBuild extends Build {
     settings = buildSettings ++ webSettings ++ Seq(
       libraryDependencies += jettyContainer
     )
-  ) dependsOn(macros)
+  ) dependsOn(servletMacros)
 }
