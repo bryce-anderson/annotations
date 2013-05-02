@@ -11,10 +11,15 @@ import jaxed._
  */
 trait RouteBinding extends macrohelpers.Helpers { self =>
 
+  type RT <: RequestContext
+
   import c.universe._
 
-  def reqContextName = "reqContext"
-  def reqContextExpr = c.Expr[RequestContext](Ident(newTermName(reqContextName)))
+  lazy val restTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
+
+  private def reqContextName = "reqContext"
+
+  def reqContextExpr = c.Expr[RT](Ident(newTermName(reqContextName)))
   def instExpr = c.Expr(Ident(newTermName("clazz")))
 
   // Should be overridden and stacked to include new types of symbols
@@ -30,9 +35,6 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
       reqContextExpr.splice.routeParam(LIT(symbol.name.decoded).splice).map(primConvert(symbol.typeSignature).splice)
         .getOrElse(alternate.splice)
     }.tree
-
-//    case p =>
-//      primConvert(reify(routeParamsExpr.splice.apply(LIT(p.name.decoded).splice)), p.typeSignature).tree
   }
 
   // TODO: This method should be overridden and stacked to build more complex argument trees
@@ -72,24 +74,20 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
   }
 
   def genMethodExprs[A: c.WeakTypeTag, RT <: RequestContext: c.WeakTypeTag] : List[(MethodSymbol, c.Expr[(RT) => Any])] = {
-    val methodTypes = List(typeOf[GET], typeOf[POST], typeOf[DELETE], typeOf[PUT])
 
     val tpe = weakTypeOf[A]
     val TypeRef(_, classSym: ClassSymbol, _: List[Type]) = tpe
-
-    // TODO: Why do I need this?
-    val reqContextTpe = typeArgumentTree(weakTypeOf[RT])
     val TypeRef(_, reqCtxSym: ClassSymbol, _: List[Type]) = weakTypeOf[RT]
 
     val restMethods = tpe.members.collect{ case m: MethodSymbol =>
       // To deal with a scalac bug
       // https://issues.scala-lang.org/browse/SI-7424
-      m.typeSignature // force loading method's signature
-      m.annotations.foreach(_.tpe) // force loading all the annotations
+      m.typeSignature               // force loading method's signature
+      m.annotations.foreach(_.tpe)  // force loading all the annotations
       m
     }.collect{ case m: MethodSymbol
-        if m.annotations.exists(a => methodTypes.exists(_ =:= a.tpe)) => m }
-      .map(m => (m, m.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).head.tpe))
+        if m.annotations.exists(a => restTypes.exists(_ =:= a.tpe)) => m }
+      .map(m => (m, m.annotations.filter(a => restTypes.exists(_ =:= a.tpe)).head.tpe))
       .toList
 
 
@@ -97,7 +95,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
     def buildMethodRoute(sym: MethodSymbol, requestMethod: Type): c.Expr[(RT) => Any] = {
 
-      if (sym.annotations.filter(a => methodTypes.exists(_ =:= a.tpe)).length > 1)
+      if (sym.annotations.filter(a => restTypes.exists(_ =:= a.tpe)).length > 1)
         c.error(c.enclosingPosition, s"Method ${sym.name.decoded} has more than one REST annotation.")
 
       // Make expr's that will be used to generate an instance of the class if the route matches
@@ -132,7 +130,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
       )
     }
 
-   val result = restMethods.map{case (sym: MethodSymbol, tpe: Type) => (sym,buildMethodRoute(sym,tpe))}
+   val result = restMethods.map{case (sym: MethodSymbol, tpe: Type) => (sym, buildMethodRoute(sym,tpe))}
     result
   }
 }

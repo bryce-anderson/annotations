@@ -77,10 +77,17 @@ object RouteNode {
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
     import c.universe._
     val routeExpr = c.Expr[RouteNode](Ident(newTermName("tmp")))
-    val expr = ServletBinding.bindClass_impl(c)(c.prefix, path)
+
+    val _c = c
+    val servletBinding = new ServletBinding {
+      type RT = ServletReqContext
+      val c: Context = _c
+    }
+    val expr = servletBinding.bindClass_impl(c.prefix.asInstanceOf[servletBinding.c.Expr[RouteNode]],
+      path.asInstanceOf[servletBinding.c.Expr[String]])
 
     println(s"DEBUG: -----------------------------------\n $expr")
-    expr
+    expr.asInstanceOf[c.Expr[RouteNode]]
   }
 
 }

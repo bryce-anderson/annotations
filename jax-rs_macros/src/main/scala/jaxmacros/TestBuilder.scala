@@ -37,7 +37,10 @@ object TestBuilder {
     import c.universe._
 
     val c1 = c   // Need to rename for making the builder, else get recursive value
-    val builder = new RouteBinding{  val c = c1 }
+    val builder = new RouteBinding {
+        type RT = MinimalContext
+        val c = c1
+      }
     import builder.LIT
 
     val methods = builder.genMethodExprs[A, MinimalContext] // List[(name: String, method: MinimalContext => Any)]
