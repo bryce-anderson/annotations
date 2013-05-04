@@ -10,7 +10,7 @@ import javax.ws.rs.GET
 
 class Test {
   @GET
-  def doGet() = <html><body>Hello world from Test</body></html>
+  def doGet() = <html><body>Hello world from Test </body></html>
 }
 
 class Main extends ScalatraJaxSupport {

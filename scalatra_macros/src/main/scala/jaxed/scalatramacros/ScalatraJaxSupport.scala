@@ -7,16 +7,14 @@ import language.experimental.macros
 import jaxed.servletmacros.{ServletReqContext, ServletBinding}
 import javax.ws.rs.{POST, GET}
 import jaxed.{Post, Get}
+import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
 /**
  * @author Bryce Anderson
  *         Created on 5/3/13
  */
 trait ScalatraJaxSupport extends ScalatraServlet  { self =>
-  protected def __self = self  // Needed for the macro to resolve itself. May be removed if we don't use reify...
-
   def bindClass[A](path: String): Unit = macro ScalatraJaxSupport.bindClass_impl[A]
-
 }
     // TODO: make ScalatraReqContext which uses the right request, response, etc.
 object ScalatraJaxSupport {
@@ -30,35 +28,39 @@ object ScalatraJaxSupport {
 
       import c.universe._
 
-      def buildBlock[A: WeakTypeTag](path: c.Expr[String], scalatra: c.Expr[ScalatraServlet]): List[Tree] = {
+
+
+      def buildBlock[A: WeakTypeTag](path: c.Expr[String]): List[Tree] = {
         val routes = genMethodExprs[A, ServletReqContext]  // List[(MethodSymbol, ServletReqContext => Any)]
         .map { case (sym, f) =>
           val reqTpe = sym.annotations.find(a => restTypes.exists(_ =:= a.tpe)).get.tpe
-          reqTpe match {
-            case t if t =:= typeOf[GET] => reify {
-                scalatra.splice.get(new SinatraRouteMatcher(path.splice)) {   // TODO: can we make this expression know its in the trait, of does it have to be done with trees explicitly?
-                  val ctx = ServletReqContext(path.splice, Get, scalatra.splice.params(scalatra.splice.request), scalatra.splice.request, scalatra.splice.response)
-                  f.splice.apply(ctx)
-                }
-              }
-
-            case t if t =:= typeOf[POST] => reify {
-              scalatra.splice.post(new SinatraRouteMatcher(path.splice)) {   // TODO: can we make this expression know its in the trait, of does it have to be done with trees explicitly?
-              val ctx = ServletReqContext(path.splice, Post, scalatra.splice.params(scalatra.splice.request), scalatra.splice.request, scalatra.splice.response)
-                f.splice.apply(ctx)
-              }
-            }
+          val (reqTpeExpr,idTree) = reqTpe match {
+            case t if t =:= typeOf[GET] => (reify(Get), Ident(newTermName("get")))
+            case t if t =:= typeOf[POST] => (reify(Post), Ident(newTermName("post")))
           }
+
+//          reify {
+//            scalatra.splice.get(new SinatraRouteMatcher(path.splice)) {   // TODO: can we make this expression know its in the trait, of does it have to be done with trees explicitly?
+//            val ctx = new ScalatraReqContext(path.splice, Get, scalatra.splice.params(scalatra.splice.request), scalatra.splice.request, scalatra.splice.response)
+//              f.splice.apply(ctx)
+//            }
+          val paramsExpr = c.Expr[org.scalatra.Params](Ident(newTermName("params")))
+          val reqExpr = c.Expr[HttpServletRequest](Ident(newTermName("request")))
+          val respExpr = c.Expr[HttpServletResponse](Ident(newTermName("response")))
+          val bodyExpr = reify{
+            val ctx = new ScalatraReqContext(reqTpeExpr.splice, paramsExpr.splice, reqExpr.splice, respExpr.splice)
+            f.splice.apply(ctx)
+          }
+          Apply(Apply(idTree, List(path.tree)), List(bodyExpr.tree))  // Apply path and generated body
         }
-        routes.map(_.tree)
+        routes
       }
     }
 
     import c.universe._
 
-    val scalatraExpr = c.Expr[ScalatraJaxSupport](Ident(newTermName("__self")))
     val result = c.Expr[Unit](Block(
-      binder.buildBlock[A](path.asInstanceOf[binder.c.Expr[String]], scalatraExpr.asInstanceOf[binder.c.Expr[ScalatraServlet]])
+      binder.buildBlock[A](path.asInstanceOf[binder.c.Expr[String]])
         .asInstanceOf[List[Tree]],               // Damn path dependent types
       Literal(Constant())
     ))

@@ -7,11 +7,11 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  * @author Bryce Anderson
  *         Created on 5/1/13
  */
-case class ServletReqContext(path: String,
-                             method: RequestMethod,
-                             routeParams: Params,
-                             req: HttpServletRequest,
-                             resp: HttpServletResponse) extends RequestContext { self =>
+class ServletReqContext(val path: String,
+                             val method: RequestMethod,
+                             val routeParams: Params,
+                             val req: HttpServletRequest,
+                             val resp: HttpServletResponse) extends RequestContext { self =>
 
   private lazy val queryParams = {
     val str = req.getQueryString
@@ -30,4 +30,11 @@ case class ServletReqContext(path: String,
 
   def addParams(newParams: Params) =
     self.copy(routeParams = if(newParams.isEmpty) routeParams else routeParams ++ newParams)
+
+  def copy( path: String = self.path,
+            method: RequestMethod = self.method,
+            routeParams: Params = self.routeParams,
+            req: HttpServletRequest = self.req,
+            resp: HttpServletResponse = self.resp) =
+    new ServletReqContext(path, method, routeParams, req, resp)
 }
