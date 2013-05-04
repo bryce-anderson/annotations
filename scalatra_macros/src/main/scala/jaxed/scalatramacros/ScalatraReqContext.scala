@@ -16,11 +16,11 @@ class ScalatraReqContext(method: RequestMethod,
                          resp: HttpServletResponse)
   extends ServletReqContext(req.getRequestURI, method, routeParams, req, resp) { self =>
 
-  //lazy val richRequest: RichRequest = RichRequest(req)
-  //lazy val richResponse: RichResponse = RichResponse(resp)
-  //def cookies = richRequest.cookies
-  //
-  //def cookie(key: String): Option[String] = cookies.get(key)
+  lazy val richRequest: RichRequest = RichRequest(req)
+  lazy val richResponse: RichResponse = RichResponse(resp)
+  def cookies = richRequest.cookies
+
+  def cookie(key: String): Option[String] = cookies.get(key)
 
   override   def copy( path: String = self.path,  // Not used
                        method: RequestMethod = self.method,

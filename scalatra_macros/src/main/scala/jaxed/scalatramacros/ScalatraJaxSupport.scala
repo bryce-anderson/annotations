@@ -23,12 +23,10 @@ object ScalatraJaxSupport {
 
     val c1 = c
     val binder = new ServletBinding {
-      type RT = ServletReqContext
+      type RT = ScalatraReqContext
       val c = c1
 
       import c.universe._
-
-
 
       def buildBlock[A: WeakTypeTag](path: c.Expr[String]): List[Tree] = {
         val routes = genMethodExprs[A, ServletReqContext]  // List[(MethodSymbol, ServletReqContext => Any)]
