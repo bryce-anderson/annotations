@@ -57,10 +57,7 @@ object MyBuild extends Build {
   lazy val scalatraMacros: Project = Project(
     "scalatra_macros",
     file("scalatra_macros"),
-    settings = buildSettings ++ webSettings ++ Seq(
-      libraryDependencies += jettyContainer,
-      libraryDependencies += servlet
-    )
+    settings = buildSettings
   ) dependsOn(
     scalatraGitProject, 
     servletMacros
@@ -70,8 +67,7 @@ object MyBuild extends Build {
     "scalatra_test",
     file("scalatra_test"),
     settings = buildSettings ++ webSettings ++ Seq(
-      libraryDependencies += jettyContainer,
-      libraryDependencies += servlet
+      libraryDependencies += jettyContainer
     )
   ) dependsOn(
     scalatraGitProject, 

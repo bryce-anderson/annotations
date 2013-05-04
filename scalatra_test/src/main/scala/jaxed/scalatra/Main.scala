@@ -10,12 +10,10 @@ import javax.ws.rs.GET
 
 class Test {
   @GET
-  def doGet() = "Hello world"
+  def doGet() = <html><body>Hello world from Test</body></html>
 }
 
 class Main extends ScalatraJaxSupport {
-
-  println("Hello world!")
 
   bindClass[Test]("/helloworld")
 
