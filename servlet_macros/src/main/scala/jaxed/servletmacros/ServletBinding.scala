@@ -28,19 +28,4 @@ trait ServletBinding extends RouteBinding { self =>
   override def methodParamBuilder(paramSym: Symbol, methodSymbol: MethodSymbol, annotation: Type, index: Int): Tree =
     reqRespTree(paramSym) getOrElse super.methodParamBuilder(paramSym, methodSymbol, annotation, index)
 
-
-  def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[RouteNode] = {
-    val paths = genMethodExprs[A, ServletReqContext] // List[(MethodSymbol, c.Expr[(ServletReqContext) => Any])]
-
-    paths.map { case (sym, f) => (sym.annotations.find(a => restTypes.exists(_ =:= a.tpe)).get.tpe, f) }
-      .foldLeft(node){ case (node, (reqTpe, f)) =>
-        val methodExpr = reqTpe match {
-          case t if t =:= typeOf[GET] => reify(Get)
-          case t if t =:= typeOf[POST] => reify(Post)
-        }
-        reify {
-          node.splice.addRouteLeaf(methodExpr.splice, path.splice, f.splice)
-        }
-      }
-  }
 }

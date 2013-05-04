@@ -9,4 +9,8 @@ object Dependencies {
   // lazy val jettyContainer = "org.eclipse.jetty" % "jetty-servlet" % "9.0.2.v20130417" // Doesn't work with webplugin
   lazy val jettyContainer = "org.eclipse.jetty" % "jetty-webapp" % "8.1.10.v20130312" % "container"
   
+  // lazy val scalatra = "org.scalatra" % "scalatra" % "2.2.0"
+  lazy val scalatraBranch = "2.2.x_2.10"
+            
+  
 }

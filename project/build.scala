@@ -49,9 +49,21 @@ object MyBuild extends Build {
   lazy val test: Project = Project(
     "test",
     file("test"),
-    //settings = buildSettings ++ Revolver.settings ++ Seq(
     settings = buildSettings ++ webSettings ++ Seq(
       libraryDependencies += jettyContainer
     )
   ) dependsOn(servletMacros)
+  
+  lazy val scalatraMacros: Project = Project(
+    "scalatra_macros",
+    file("scalatra_macros"),
+    settings = buildSettings ++ webSettings ++ Seq(
+      libraryDependencies += jettyContainer,
+      libraryDependencies += servlet
+    )
+  ) dependsOn(
+    ProjectRef(uri("https://github.com/scalatra/scalatra.git#%s".format(scalatraBranch)), "scalatra"), 
+    servletMacros
+  )
+  
 }
