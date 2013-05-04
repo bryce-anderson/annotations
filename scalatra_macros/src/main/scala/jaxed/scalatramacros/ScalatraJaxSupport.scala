@@ -18,7 +18,7 @@ trait ScalatraJaxSupport extends ScalatraServlet  { self =>
   def bindClass[A](path: String): Unit = macro ScalatraJaxSupport.bindClass_impl[A]
 
 }
-
+    // TODO: make ScalatraReqContext which uses the right request, response, etc.
 object ScalatraJaxSupport {
 
   def bindClass_impl[A: c.WeakTypeTag](c: Context)(path: c.Expr[String]): c.Expr[Unit] = {
@@ -57,10 +57,13 @@ object ScalatraJaxSupport {
     import c.universe._
 
     val scalatraExpr = c.Expr[ScalatraJaxSupport](Ident(newTermName("__self")))
-    c.Expr[Unit](Block(
+    val result = c.Expr[Unit](Block(
       binder.buildBlock[A](path.asInstanceOf[binder.c.Expr[String]], scalatraExpr.asInstanceOf[binder.c.Expr[ScalatraServlet]])
         .asInstanceOf[List[Tree]],               // Damn path dependent types
       Literal(Constant())
     ))
+
+    println(s"DEBUG: ------------------------\n$result")
+    result
   }
 }

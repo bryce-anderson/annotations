@@ -62,8 +62,20 @@ object MyBuild extends Build {
       libraryDependencies += servlet
     )
   ) dependsOn(
-    ProjectRef(uri("https://github.com/scalatra/scalatra.git#%s".format(scalatraBranch)), "scalatra"), 
+    scalatraGitProject, 
     servletMacros
+  )
+  
+  lazy val scalatraTest: Project = Project(
+    "scalatra_test",
+    file("scalatra_test"),
+    settings = buildSettings ++ webSettings ++ Seq(
+      libraryDependencies += jettyContainer,
+      libraryDependencies += servlet
+    )
+  ) dependsOn(
+    scalatraGitProject, 
+    scalatraMacros
   )
   
 }

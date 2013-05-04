@@ -11,6 +11,8 @@ object Dependencies {
   
   // lazy val scalatra = "org.scalatra" % "scalatra" % "2.2.0"
   lazy val scalatraBranch = "2.2.x_2.10"
+  
+  lazy val scalatraGitProject = ProjectRef(uri("https://github.com/scalatra/scalatra.git#%s".format(scalatraBranch)), "scalatra")
             
   
 }
