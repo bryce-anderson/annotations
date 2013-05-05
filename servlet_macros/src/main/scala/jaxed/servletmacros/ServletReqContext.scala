@@ -31,6 +31,8 @@ class ServletReqContext(val path: String,
   def addParams(newParams: Params) =
     self.copy(routeParams = if(newParams.isEmpty) routeParams else routeParams ++ newParams)
 
+  def getURI = req.getRequestURI
+
   def copy( path: String = self.path,
             method: RequestMethod = self.method,
             routeParams: Params = self.routeParams,

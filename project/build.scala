@@ -14,7 +14,7 @@ object BuildSettings {
   )
   
   val macroSettings = Seq(
-      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _)
+      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _ % "compile")
     )
 }
 
@@ -47,8 +47,8 @@ object MyBuild extends Build {
   ) dependsOn(macros)
   
   lazy val test: Project = Project(
-    "test",
-    file("test"),
+    "servlet_test",
+    file("servlet_test"),
     settings = buildSettings ++ webSettings ++ Seq(
       libraryDependencies += jettyContainer
     )

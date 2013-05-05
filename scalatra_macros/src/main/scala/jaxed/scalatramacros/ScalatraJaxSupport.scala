@@ -37,11 +37,6 @@ object ScalatraJaxSupport {
             case t if t =:= typeOf[POST] => (reify(Post), Ident(newTermName("post")))
           }
 
-//          reify {
-//            scalatra.splice.get(new SinatraRouteMatcher(path.splice)) {   // TODO: can we make this expression know its in the trait, of does it have to be done with trees explicitly?
-//            val ctx = new ScalatraReqContext(path.splice, Get, scalatra.splice.params(scalatra.splice.request), scalatra.splice.request, scalatra.splice.response)
-//              f.splice.apply(ctx)
-//            }
           val paramsExpr = c.Expr[org.scalatra.Params](Ident(newTermName("params")))
           val reqExpr = c.Expr[HttpServletRequest](Ident(newTermName("request")))
           val respExpr = c.Expr[HttpServletResponse](Ident(newTermName("response")))

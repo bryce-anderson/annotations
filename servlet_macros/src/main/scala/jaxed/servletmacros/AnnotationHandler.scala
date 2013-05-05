@@ -21,6 +21,7 @@ abstract class AnnotationHandler extends HttpServlet { self =>
       case "PUT" => Put
       case "DELETE" => Delete
     }
+
     val rawPath = req.getRequestURI().substring(req.getContextPath().length())
     rootNode.handle(new ServletReqContext(rawPath, method, EmptyParams, req, resp))
   }
