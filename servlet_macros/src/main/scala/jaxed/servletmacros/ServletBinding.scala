@@ -4,7 +4,7 @@ package servletmacros
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import jaxmacros.RouteBinding
 import scala.reflect.macros.Context
-import javax.ws.rs.{POST, GET}
+import javax.ws.rs.{CookieParam, POST, GET}
 
 /**
  * @author Bryce Anderson
@@ -16,16 +16,28 @@ trait ServletBinding extends RouteBinding { self =>
 
   import c.universe._
 
-  private def reqRespTree(symbol: Symbol) = symbol.typeSignature match {
-    case s if s =:= typeOf[HttpServletRequest] => Some(reify(reqContextExpr.splice.req).tree)
-    case s if s =:= typeOf[HttpServletResponse]=> Some(reify(reqContextExpr.splice.resp).tree)
+  private def reqRespTree(symbol: Symbol, parentSymbol: Symbol, index: Int) = symbol match {
+    case s if s.typeSignature =:= typeOf[HttpServletRequest] => Some(reify(reqContextExpr.splice.req).tree)
+    case s if s.typeSignature =:= typeOf[HttpServletResponse]=> Some(reify(reqContextExpr.splice.resp).tree)
+    case s if !getAnnotation[CookieParam](s).isEmpty =>
+      val cookieName = getAnnotation[CookieParam](s).get.javaArgs(newTermName("value")).toString.replaceAll("\"", "")
+      val defaultExpr = parentSymbol match {
+        case classSym: ClassSymbol => getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
+        case methSym: MethodSymbol => getDefaultParamExpr(symbol, symbol.name.encoded, self.instExpr, methSym.name.encoded, index)
+      }
+      Some(reify(reqContextExpr.splice
+        .getCookie(LIT(cookieName).splice)
+        .map(primConvert(symbol.typeSignature).splice)
+        .getOrElse(defaultExpr.splice)).tree
+      )
+
     case _ => None
   }
 
   override def constructorBuilder(paramSym: Symbol, classSym: ClassSymbol, index: Int): Tree =
-    reqRespTree(paramSym) getOrElse super.constructorBuilder(paramSym, classSym, index)
+    reqRespTree(paramSym, classSym, index) getOrElse super.constructorBuilder(paramSym, classSym, index)
 
   override def methodParamBuilder(paramSym: Symbol, methodSymbol: MethodSymbol, annotation: Type, index: Int): Tree =
-    reqRespTree(paramSym) getOrElse super.methodParamBuilder(paramSym, methodSymbol, annotation, index)
+    reqRespTree(paramSym, methodSymbol, index) getOrElse super.methodParamBuilder(paramSym, methodSymbol, annotation, index)
 
 }

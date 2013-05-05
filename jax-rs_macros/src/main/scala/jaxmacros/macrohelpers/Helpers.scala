@@ -59,6 +59,8 @@ trait Helpers { self =>
       throw new java.util.UnknownFormatConversionException(s"Cannot convert type $tpe")
   }
 
+  def getAnnotation[T: TypeTag](sym: Symbol) = sym.annotations.find(_.tpe =:= typeOf[T])
+
   def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c.Expr[T], methodName: String, paramIndex: Int) = {
     p.annotations.find(_.tpe == typeOf[DefaultValue])
       .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))

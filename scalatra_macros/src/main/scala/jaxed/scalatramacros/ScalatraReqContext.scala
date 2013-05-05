@@ -4,6 +4,9 @@ import jaxed.servletmacros.ServletReqContext
 import jaxed._
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import org.scalatra.servlet.{RichResponse, RichRequest}
+import org.scalatra.SweetCookies
+import org.scalatra.CookieSupport.SweetCookiesKey
+import org.scalatra.servlet.RichResponse
 
 
 /**
@@ -18,7 +21,10 @@ class ScalatraReqContext(method: RequestMethod,
 
   lazy val richRequest: RichRequest = RichRequest(req)
   lazy val richResponse: RichResponse = RichResponse(resp)
-  def cookies = richRequest.cookies
+  private def cookies = richRequest.get(SweetCookiesKey).orNull.asInstanceOf[SweetCookies]
+
+  override def setCookie(name: String, value: String) { cookies += ((name, value)) }
+  override def getCookie(name: String): Option[String] = cookies.get(name)
 
   def cookie(key: String): Option[String] = cookies.get(key)
 

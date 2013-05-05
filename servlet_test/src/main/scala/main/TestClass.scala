@@ -1,7 +1,7 @@
 package main
 
 import javax.ws.rs._
-import javax.servlet.http.HttpServletResponse
+import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.concurrent.Future
 
 
@@ -53,4 +53,17 @@ class FutureTest {
   import scala.concurrent.ExecutionContext.Implicits.global
   @GET
   def routeGet() = Future("Hello future")
+}
+
+class GetCookieTest {
+  @GET
+  def cookieRoute(@CookieParam("cookie") cookie: String = "None") = s"Got cookie '$cookie'"
+}
+
+class SetCookieTest {
+  import javax.servlet.http.Cookie
+  @GET def cookieRoute(req: HttpServletResponse) = {
+    req.addCookie(new Cookie("cookie", "Its a cookie!"))
+    "Setting a cookie for you"
+  }
 }

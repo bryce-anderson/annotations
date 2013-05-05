@@ -19,8 +19,8 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
   private def reqContextName = "reqContext"
 
-  def reqContextExpr = c.Expr[RT](Ident(newTermName(reqContextName)))
-  def instExpr = c.Expr(Ident(newTermName("clazz")))
+  final def reqContextExpr = c.Expr[RT](Ident(newTermName(reqContextName)))
+  final def instExpr = c.Expr(Ident(newTermName("clazz")))
 
   // Should be overridden and stacked to include new types of symbols
   def constructorBuilder(paramSymbol: Symbol, classSym: ClassSymbol, index: Int): Tree = { //paramSymbol match {
@@ -41,7 +41,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
   def methodParamBuilder(paramSym: Symbol, methodSym: MethodSymbol, restType: Type, index: Int): Tree = {
 
     if (paramSym.annotations.exists(_.tpe =:= typeOf[QueryParam])) {
-      val queryKey = paramSym.annotations.find(_.tpe =:= typeOf[QueryParam])
+      val queryKey = getAnnotation[QueryParam](paramSym)
         .map{i => println(s"What are we: ${i.javaArgs}"); i}
         .get.javaArgs.get(newTermName("value"))
         .map(_.toString.replaceAll("\"", ""))
@@ -55,7 +55,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
         .getOrElse(defaultExpr.splice)).tree
     }
     else if (paramSym.annotations.exists(_.tpe == typeOf[FormParam])) {
-      val formKey = paramSym.annotations.find(_.tpe =:= typeOf[FormParam])
+      val formKey = getAnnotation[FormParam](paramSym)
         .get.javaArgs.get(newTermName("value"))
         .map(_.toString.replaceAll("\"", ""))
         .getOrElse("")       // Will throw an error during compilation

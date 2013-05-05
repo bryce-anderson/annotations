@@ -1,7 +1,7 @@
 package jaxed.scalatra
 
 import jaxed.scalatramacros.ScalatraJaxSupport
-import javax.ws.rs.GET
+import javax.ws.rs.{CookieParam, GET}
 import javax.servlet.http.HttpServletResponse
 
 /**
@@ -22,6 +22,11 @@ class Test2 {
   }
 }
 
+class GetCookie {
+  @GET
+  def getCookie(@CookieParam("cookie") kookie: String) = s"You gave me cookie '$kookie'"
+}
+
 class WithParams {
   @GET
   def withParams(name: String) = s"Hello $name"
@@ -33,4 +38,9 @@ class Main extends ScalatraJaxSupport {
   bindClass[Test2]("/helloworld2")
   bindClass[WithParams]("/hello/:name")
 
+  get("/setcookie") {
+    cookies += (("cookie", "Scalatra cookie"))
+    "Set the cookie"
+  }
+  bindClass[GetCookie]("/getcookie")
 }

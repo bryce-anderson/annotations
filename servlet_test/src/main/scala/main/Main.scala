@@ -10,4 +10,6 @@ class Main extends AnnotationHandler {
     .mapClass[TestClass3]("/testclass3/:bar")
     .mapClass[FutureTest]("/future")
     .mapClass[WithConstrutor]("")
+    .mapClass[GetCookieTest]("/getcookie")
+    .mapClass[SetCookieTest]("/setcookie")
 }
