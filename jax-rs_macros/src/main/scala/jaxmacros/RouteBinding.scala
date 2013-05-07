@@ -37,7 +37,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
     }.tree
   }
 
-  // TODO: This method should be overridden and stacked to build more complex argument trees
+  // This method should be overridden and stacked to build more complex argument trees
   def methodParamBuilder(paramSym: Symbol, methodSym: MethodSymbol, restType: Type, index: Int): Tree = {
 
     if (paramSym.annotations.exists(_.tpe =:= typeOf[QueryParam])) {
@@ -47,7 +47,6 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
         .map(_.toString.replaceAll("\"", ""))
         .getOrElse("")       // Will throw an error during compilation
 
-      // TODO: Do we want the methodSym.name to be encoded or decoded?
       val defaultExpr = getDefaultParamExpr(paramSym, queryKey, instExpr, methodSym.name.encoded, index)
 
       reify(reqContextExpr.splice.queryParam(LIT(queryKey).splice)
@@ -104,8 +103,8 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
         })
 
       val newInstExpr = c.Expr[A](
-        constructorParams.foldLeft[Tree](Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR)){ case (tree, params) =>
-          Apply(tree, params)
+        constructorParams.foldLeft[Tree](Select(New(typeArgumentTree(tpe)), nme.CONSTRUCTOR)){ case (t, p) =>
+          Apply(t, p)
         })
 
       val methodParamsTree: List[List[Tree]] = sym.paramss
@@ -113,8 +112,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
           methodParamBuilder(p, sym, requestMethod, index)
         })
 
-      // TODO: Do we want to flatten the methodParamsTree, or recursively apply like the class constructor
-      val routeTree = Apply(Select(instExpr.tree, sym.name), methodParamsTree.flatten)
+      val routeTree = methodParamsTree.foldLeft[Tree](Select(instExpr.tree, sym.name)){ case (t, p) => Apply(t, p)}
       val routeResult = c.Expr[Any](routeTree)
       c.Expr[RT => Any](
         Function(List(
@@ -124,7 +122,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
             EmptyTree)
         ), reify{
           val clazz = newInstExpr.splice   // Name is important, trees depend on it
-          routeResult.splice
+          routeExecutionExpr(routeResult).splice
         }.tree)
       )
     }
@@ -132,4 +130,7 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
    val result = restMethods.map{case (sym: MethodSymbol, tpe: Type) => (sym, buildMethodRoute(sym,tpe))}
     result
   }
+
+  // Receives the expr representing the execution of the route, right after class instancing
+  def routeExecutionExpr(expr: c.Expr[Any]): c.Expr[Any] = expr
 }

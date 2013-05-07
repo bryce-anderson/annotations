@@ -12,4 +12,5 @@ class Main extends AnnotationHandler {
     .mapClass[WithConstrutor]("")
     .mapClass[GetCookieTest]("/getcookie")
     .mapClass[SetCookieTest]("/setcookie")
+    .mapClass[WithFilter]("/withfilter")
 }

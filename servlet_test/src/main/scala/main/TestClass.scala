@@ -3,6 +3,7 @@ package main
 import javax.ws.rs._
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.concurrent.Future
+import jaxed.{ServletReqContext, Filter}
 
 
 /**
@@ -24,7 +25,7 @@ class TestClass {
 
 class TestClass2 {
   @GET
-  def routeGet(bar: Int, @QueryParam("query") @DefaultValue("1") query: Int = -1) =
+  def routeGet(bar: Int)( @QueryParam("query") @DefaultValue("1") query: Int = -1) =
     <h2>routeGet: bar = {bar}, query = {query}</h2>
 
   @POST
@@ -39,7 +40,7 @@ class TestClass3 {
   }
 }
 
-class DoubleClass {
+class DoubleClass extends Filter {
   @GET
   def routeGet() = 3.14
 }
@@ -66,4 +67,19 @@ class SetCookieTest {
     req.addCookie(new Cookie("cookie", "Its a cookie!"))
     "Setting a cookie for you"
   }
+}
+
+class WithFilter extends Filter {
+  override def beforeFilter(context: ServletReqContext): Option[Any] = {
+    context.resp.getWriter.write("Before Filter!\n")
+    None
+  }
+
+  override def afterFilter(context: ServletReqContext, result: Option[Any]): Option[Any] = result match {
+    case Some(result: String) => Some(result + "\nAfter filter!\n")
+    case r => r
+  }
+
+  @GET
+  def getReq = "Hello world, with filters."
 }

@@ -17,7 +17,7 @@ import scala.Some
  */
 
 
-class RouteNode(path: String = "") extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
+class RouteNode(path: String = "") extends Route with Filter with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
 
   private val pathPattern = buildPath( path match {
     case "" => ""
@@ -29,7 +29,7 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
   protected val routes = new MutableList[Route]()
 
   // This method should be overridden to match parts of the url.
-  override def handle(context: ServletReqContext): Option[Any] = {
+  protected def runLeaves(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
       val subcontext = context.subPath(subPath, params)
       def searchList(it: Iterator[Route]): Option[Any] = {
@@ -47,6 +47,11 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
       searchList(routes.iterator)
     }
+  }
+
+  override def handle(context: ServletReqContext): Option[Any] = beforeFilter(context) match {
+    case s: Some[_] => s
+    case None => afterFilter(context,runLeaves(context))
   }
 
   def addRoute(route: Route): self.type = { routes += route; self }
@@ -81,6 +86,22 @@ object RouteNode {
       val c: Context = _c
 
       import c.universe._
+
+
+      // Receives the expr representing the execution of the route, right after class instancing
+      override def routeExecutionExpr(expr: c.Expr[Any]): c.Expr[Any] = weakTypeOf[A] match {
+        case t if t <:< typeOf[Filter] =>
+          val classFilterExpr = instExpr.asInstanceOf[c.Expr[Filter]] // We can now use the filter ops!
+          reify {
+            classFilterExpr.splice.beforeFilter(reqContextExpr.splice) match {
+              case Some(result) => result
+              case None =>
+                classFilterExpr.splice.afterFilter(reqContextExpr.splice, Some(expr.splice)).getOrElse(Unit)
+            }
+          }
+        case _ => expr // Don't filter!
+      }
+
       // Make the implementation for route binding routes to RouteNodes
       def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[RouteNode] = {
         val paths = genMethodExprs[A, ServletReqContext] // List[(MethodSymbol, c.Expr[(ServletReqContext) => Any])]
@@ -91,6 +112,7 @@ object RouteNode {
             case t if t =:= typeOf[GET] => reify(Get)
             case t if t =:= typeOf[POST] => reify(Post)
           }
+
           reify {
             node.splice.addRouteLeaf(methodExpr.splice, path.splice)(f.splice)
           }
