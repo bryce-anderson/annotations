@@ -25,7 +25,7 @@ class TestClass {
 
 class TestClass2 {
   @GET
-  def routeGet(bar: Int)( @QueryParam("query") @DefaultValue("1") query: Int = -1) =
+  def routeGet(bar: Int)(@QueryParam("query") @DefaultValue("1") query: Int = -1) =
     <h2>routeGet: bar = {bar}, query = {query}</h2>
 
   @POST
@@ -69,7 +69,7 @@ class SetCookieTest {
   }
 }
 
-class WithFilter extends Filter {
+trait MyFilter extends Filter {
   override def beforeFilter(context: ServletReqContext): Option[Any] = {
     context.resp.getWriter.write("Before Filter!\n")
     None
@@ -79,7 +79,9 @@ class WithFilter extends Filter {
     case Some(result: String) => Some(result + "\nAfter filter!\n")
     case r => r
   }
+}
 
+class WithFilter extends MyFilter {
   @GET
-  def getReq = "Hello world, with filters."
+  def getReq() = "Hello world, with filters."
 }

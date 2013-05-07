@@ -28,7 +28,6 @@ class RouteNode(path: String = "") extends Route with Filter with RouteException
 
   protected val routes = new MutableList[Route]()
 
-  // This method should be overridden to match parts of the url.
   protected def runLeaves(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
       val subcontext = context.subPath(subPath, params)
@@ -49,17 +48,15 @@ class RouteNode(path: String = "") extends Route with Filter with RouteException
     }
   }
 
-  override def handle(context: ServletReqContext): Option[Any] = beforeFilter(context) match {
-    case s: Some[_] => s
-    case None => afterFilter(context,runLeaves(context))
-  }
+  override def handle(context: ServletReqContext): Option[Any] =
+    afterFilter(context, beforeFilter(context) orElse runLeaves(context))
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
-  def addRouteLeaf(inMethod: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): self.type = {
+  def addRouteLeaf(method: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): self.type = {
     val pathPattern = buildPath(path, false)
     val route = new Route {
-      def handle(context: ServletReqContext) = if (context.method == inMethod) {
+      def handle(context: ServletReqContext) = if (context.method == method) {
         pathPattern(context.path)
           .map { case (params, _) =>
           routeMethod(context.addParams(params))
@@ -93,11 +90,8 @@ object RouteNode {
         case t if t <:< typeOf[Filter] =>
           val classFilterExpr = instExpr.asInstanceOf[c.Expr[Filter]] // We can now use the filter ops!
           reify {
-            classFilterExpr.splice.beforeFilter(reqContextExpr.splice) match {
-              case Some(result) => result
-              case None =>
-                classFilterExpr.splice.afterFilter(reqContextExpr.splice, Some(expr.splice)).getOrElse(Unit)
-            }
+            val result = classFilterExpr.splice.beforeFilter(reqContextExpr.splice) orElse Some(expr.splice)
+                classFilterExpr.splice.afterFilter(reqContextExpr.splice, result) getOrElse(Unit)
           }
         case _ => expr // Don't filter!
       }
