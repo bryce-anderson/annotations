@@ -1,8 +1,5 @@
 package jaxed
-package servletmacros
 
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-import jaxed.RequestContext
 
 /**
  * @author Bryce Anderson

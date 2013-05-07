@@ -1,5 +1,4 @@
 package jaxed
-package servletmacros
 
 import scala.collection.mutable.MutableList
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -8,21 +7,17 @@ import scala.language.experimental.macros
 import scala.reflect.macros.Context
 import jaxed._
 import javax.ws.rs.{POST, GET}
+import jaxed.servletmacros._
+import scala.Some
+import scala.Some
 
 /**
  * @author Bryce Anderson
  *         Created on 4/22/13
  */
 
-/*
-      TODO: Deal with the method types. Strings will be error prone.
-   TODO: Does the Option[Any] make sense? Should a proprietary type be created, or an either?
-   TODO: What to do about filters? Could be done through overriding handle and renderResponse, but should it be more explicit?
- */
 
 class RouteNode(path: String = "") extends Route with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
-
-
 
   private val pathPattern = buildPath( path match {
     case "" => ""
@@ -56,8 +51,8 @@ class RouteNode(path: String = "") extends Route with RouteExceptionHandler with
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
-  def addRouteLeaf(inMethod: RequestMethod, path: String, routeMethod: (ServletReqContext) => Any): self.type = {
-    val pathPattern = self.buildPath(if (path.startsWith("/")) path else "/" + path, false)
+  def addRouteLeaf(inMethod: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): self.type = {
+    val pathPattern = buildPath(path, false)
     val route = new Route {
       def handle(context: ServletReqContext) = if (context.method == inMethod) {
         pathPattern(context.path)
@@ -97,7 +92,7 @@ object RouteNode {
             case t if t =:= typeOf[POST] => reify(Post)
           }
           reify {
-            node.splice.addRouteLeaf(methodExpr.splice, path.splice, f.splice)
+            node.splice.addRouteLeaf(methodExpr.splice, path.splice)(f.splice)
           }
         }
       }

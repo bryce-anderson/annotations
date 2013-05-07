@@ -1,6 +1,5 @@
 package jaxed.scalatramacros
 
-import jaxed.servletmacros.ServletReqContext
 import jaxed._
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import org.scalatra.servlet.{RichResponse, RichRequest}
@@ -17,7 +16,7 @@ class ScalatraReqContext(method: RequestMethod,
                          routeParams: Params,
                          req: HttpServletRequest,
                          resp: HttpServletResponse)
-  extends ServletReqContext(req.getRequestURI, method, routeParams, req, resp) { self =>
+  extends ServletReqContext(null, method, routeParams, req, resp) { self =>
 
   lazy val richRequest: RichRequest = RichRequest(req)
   lazy val richResponse: RichResponse = RichResponse(resp)
@@ -28,7 +27,7 @@ class ScalatraReqContext(method: RequestMethod,
 
   def cookie(key: String): Option[String] = cookies.get(key)
 
-  override   def copy( path: String = self.path,  // Not used
+  override   def copy( path: String = null,  // Not used
                        method: RequestMethod = self.method,
                        routeParams: Params = self.routeParams,
                        req: HttpServletRequest = self.req,

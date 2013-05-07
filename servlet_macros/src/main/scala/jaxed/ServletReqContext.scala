@@ -1,5 +1,4 @@
 package jaxed
-package servletmacros
 
 import javax.servlet.http.{Cookie, HttpServletResponse, HttpServletRequest}
 
