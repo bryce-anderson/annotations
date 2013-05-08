@@ -40,11 +40,6 @@ class TestClass3 {
   }
 }
 
-class DoubleClass extends Filter {
-  @GET
-  def routeGet() = 3.14
-}
-
 class WithConstrutor(bar: String = "Default") {
   @GET
   def routeGet() = bar

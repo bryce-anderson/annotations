@@ -46,10 +46,8 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
     }
   }
 
-  override def handle(context: ServletReqContext): Option[Any] = {
-    val result = beforeFilter(context) orElse searchLeaves(context)
-    afterFilter(context, result)
-  }
+  override def handle(context: ServletReqContext): Option[Any] =
+    beforeFilter(context) orElse afterFilter(context, searchLeaves(context))
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
@@ -90,8 +88,8 @@ object RouteNode {
         case t if t <:< typeOf[Filter] =>
           val classFilterExpr = instExpr.asInstanceOf[c.Expr[Filter]] // We can now use the filter ops!
           reify {
-            val result = classFilterExpr.splice.beforeFilter(reqContextExpr.splice) orElse Some(expr.splice)
-            classFilterExpr.splice.afterFilter(reqContextExpr.splice, result)
+            classFilterExpr.splice.beforeFilter(reqContextExpr.splice) orElse
+              classFilterExpr.splice.afterFilter(reqContextExpr.splice, Some(expr.splice))
           }
         case _ => expr // Don't filter!
       }

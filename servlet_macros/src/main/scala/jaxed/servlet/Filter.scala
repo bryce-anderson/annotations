@@ -1,7 +1,5 @@
 package jaxed.servlet
 
-import jaxed.servlet.ServletReqContext
-
 /**
  * @author Bryce Anderson
  *         Created on 5/6/13
@@ -15,7 +13,7 @@ trait Filter {
     */
   def beforeFilter(context: ServletReqContext): Option[Any] = None
 
-  /** Filter method that is executed after the before filter and or route
+  /** Filter method that is executed after the route
     *
     * This method should always be called in order to possibly intercept the "miss" of a route of desired
     *
