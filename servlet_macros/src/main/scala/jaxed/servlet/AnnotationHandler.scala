@@ -9,7 +9,7 @@ import jaxed._
  * @author Bryce Anderson
  *         Created on 4/19/13
  */
-abstract class AnnotationHandler extends HttpServlet { self =>
+abstract class AnnotationHandler extends HttpServlet with RouteExceptionHandler with ResultRenderer  { self =>
 
   def rootNode: RouteNode
 
@@ -23,6 +23,18 @@ abstract class AnnotationHandler extends HttpServlet { self =>
     }
 
     val rawPath = req.getRequestURI().substring(req.getContextPath().length())
-    rootNode.handle(new ServletReqContext(rawPath, method, EmptyParams, req, resp))
+    val context = new ServletReqContext(rawPath, method, EmptyParams, req, resp)
+    try {
+      val result = rootNode.handle(context)
+      result.map{ result =>
+        renderResponse(req, resp, result)
+      }.getOrElse{
+        resp.setStatus(404)
+        resp.getWriter.write(s"(404) Request '$rawPath' not found.")
+      }
+    } catch {
+      case t: Throwable => handleException(t, context)
+    }
+
   }
 }

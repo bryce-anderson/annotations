@@ -8,11 +8,11 @@ import jaxed.servlet.ServletReqContext
  */
 trait RouteExceptionHandler {
   // This method should be stacked using super calls to created an exception pipeline.
-  protected def handleException(t: Throwable, context: ServletReqContext) {
+  protected def handleException(t: Throwable, context: ServletReqContext): Option[Any] = {
     import context.resp
 
-    t.printStackTrace() // TODO: handle errors more elegantly
     resp.setStatus(500)
     resp.getWriter.write(t.toString)
+    Some(Unit)
   }
 }

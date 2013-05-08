@@ -75,10 +75,7 @@ trait MyFilter extends Filter {
     None
   }
 
-  override def afterFilter(context: ServletReqContext, result: Option[Any]): Option[Any] = result match {
-    case Some(result: String) => Some(result + "\nAfter filter!\n")
-    case r => r
-  }
+  override def afterFilter(context: ServletReqContext, result: Option[Any]) = result.map(_ + "\nAfter Route!\n")
 }
 
 class WithFilter extends MyFilter {

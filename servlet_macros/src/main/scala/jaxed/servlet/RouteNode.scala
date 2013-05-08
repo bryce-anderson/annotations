@@ -19,7 +19,7 @@ import scala.Some
  */
 
 
-class RouteNode(path: String = "") extends Route with Filter with RouteExceptionHandler with ResultRenderer with PathBuilder { self =>
+class RouteNode(path: String = "") extends Route with Filter with PathBuilder { self =>
 
   private val pathPattern = buildPath( path match {
     case "" => ""
@@ -35,14 +35,10 @@ class RouteNode(path: String = "") extends Route with Filter with RouteException
       val subcontext = context.subPath(subPath, params)
       def searchList(it: Iterator[Route]): Option[Any] = {
         if (it.hasNext) {
-          try {
             it.next().handle(subcontext) match {
               case None => searchList(it)
-              case done @ Some(Unit) => done
-              case done @ Some(DoneResult(result)) => done
-              case Some(result) => Some(self.renderResponse(context.req, context.resp, result))
+              case done: Some[_] => done
             }
-          }  catch { case t: Throwable => handleException(t, context); Some(Unit) }
         } else None
       }
 
@@ -50,8 +46,10 @@ class RouteNode(path: String = "") extends Route with Filter with RouteException
     }
   }
 
-  override def handle(context: ServletReqContext): Option[Any] =
-    afterFilter(context, beforeFilter(context) orElse runLeaves(context))
+  override def handle(context: ServletReqContext): Option[Any] = {
+    val result = beforeFilter(context) orElse runLeaves(context)
+    afterFilter(context, result)
+  }
 
   def addRoute(route: Route): self.type = { routes += route; self }
 
@@ -93,7 +91,7 @@ object RouteNode {
           val classFilterExpr = instExpr.asInstanceOf[c.Expr[Filter]] // We can now use the filter ops!
           reify {
             val result = classFilterExpr.splice.beforeFilter(reqContextExpr.splice) orElse Some(expr.splice)
-                classFilterExpr.splice.afterFilter(reqContextExpr.splice, result) getOrElse(Unit)
+            classFilterExpr.splice.afterFilter(reqContextExpr.splice, result)
           }
         case _ => expr // Don't filter!
       }
