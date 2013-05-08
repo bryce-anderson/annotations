@@ -2,6 +2,7 @@ package jaxed
 package servletmacros
 
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
+import jaxed.servlet.{ResultRenderer, DoneResult}
 
 /**
  * @author Bryce Anderson

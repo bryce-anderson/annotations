@@ -3,7 +3,7 @@ package main
 import javax.ws.rs._
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.concurrent.Future
-import jaxed.{ServletReqContext, Filter}
+import jaxed.servlet.{ServletReqContext, Filter}
 
 
 /**

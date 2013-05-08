@@ -1,4 +1,6 @@
-package jaxed
+package jaxed.servlet
+
+import jaxed.{SinatraPathPatternParser, PathPattern}
 
 /**
  * @author Bryce Anderson

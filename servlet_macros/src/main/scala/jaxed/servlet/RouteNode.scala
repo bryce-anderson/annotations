@@ -1,4 +1,4 @@
-package jaxed
+package jaxed.servlet
 
 import scala.collection.mutable.MutableList
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -9,6 +9,8 @@ import jaxed._
 import javax.ws.rs.{POST, GET}
 import jaxed.servletmacros._
 import scala.Some
+import scala.Some
+import jaxed.servlet._
 import scala.Some
 
 /**

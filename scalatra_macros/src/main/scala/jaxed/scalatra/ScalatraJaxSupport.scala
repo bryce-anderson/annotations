@@ -1,4 +1,4 @@
-package jaxed.scalatramacros
+package jaxed.scalatra
 
 import org.scalatra.{SinatraRouteMatcher, Route, ScalatraServlet}
 
@@ -6,8 +6,9 @@ import scala.reflect.macros.Context
 import language.experimental.macros
 import jaxed.servletmacros.{ServletBinding}
 import javax.ws.rs.{POST, GET}
-import jaxed.{ServletReqContext, Post, Get}
+import jaxed.{Post, Get}
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
+import jaxed.servlet.ServletReqContext
 
 /**
  * @author Bryce Anderson

@@ -1,6 +1,6 @@
 package jaxed.scalatra
 
-import jaxed.scalatramacros.ScalatraJaxSupport
+import jaxed.scalatra.ScalatraJaxSupport
 import javax.ws.rs.{CookieParam, GET}
 import javax.servlet.http.HttpServletResponse
 

@@ -1,8 +1,9 @@
-package jaxed
+package jaxed.servlet
 
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest, HttpServlet}
 
 import scala.language.experimental.macros
+import jaxed._
 
 /**
  * @author Bryce Anderson

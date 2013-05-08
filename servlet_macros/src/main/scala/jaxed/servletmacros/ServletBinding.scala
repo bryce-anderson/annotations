@@ -5,6 +5,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import jaxmacros.RouteBinding
 import scala.reflect.macros.Context
 import javax.ws.rs.{CookieParam, POST, GET}
+import jaxed.servlet.ServletReqContext
 
 /**
  * @author Bryce Anderson

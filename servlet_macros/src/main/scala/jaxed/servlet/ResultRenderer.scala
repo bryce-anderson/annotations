@@ -1,4 +1,4 @@
-package jaxed
+package jaxed.servlet
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import scala.concurrent.{ExecutionContext, Future}

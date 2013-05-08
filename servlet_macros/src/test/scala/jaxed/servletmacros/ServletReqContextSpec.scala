@@ -4,6 +4,7 @@ package servletmacros
 import org.specs2.mutable.Specification
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import javax.ws.rs.GET
+import jaxed.servlet.{RouteNode, DoneResult}
 
 /**
  * @author Bryce Anderson

@@ -1,4 +1,4 @@
-package jaxed.scalatramacros
+package jaxed.scalatra
 
 import jaxed._
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -6,6 +6,7 @@ import org.scalatra.servlet.{RichResponse, RichRequest}
 import org.scalatra.SweetCookies
 import org.scalatra.CookieSupport.SweetCookiesKey
 import org.scalatra.servlet.RichResponse
+import jaxed.servlet.ServletReqContext
 
 
 /**

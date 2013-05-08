@@ -1,6 +1,7 @@
-package jaxed
+package jaxed.servlet
 
 import javax.servlet.http.{Cookie, HttpServletResponse, HttpServletRequest}
+import jaxed._
 
 /**
  * @author Bryce Anderson

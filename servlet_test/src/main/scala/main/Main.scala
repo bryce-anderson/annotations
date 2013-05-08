@@ -1,6 +1,6 @@
 package main
 
-import jaxed.{AnnotationHandler, RouteNode}
+import jaxed.servlet.{RouteNode, AnnotationHandler}
 
 
 class Main extends AnnotationHandler {

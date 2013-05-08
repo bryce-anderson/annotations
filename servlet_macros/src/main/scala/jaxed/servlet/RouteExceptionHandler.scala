@@ -1,5 +1,6 @@
-package jaxed
+package jaxed.servlet
 
+import jaxed.servlet.ServletReqContext
 
 /**
  * @author Bryce Anderson

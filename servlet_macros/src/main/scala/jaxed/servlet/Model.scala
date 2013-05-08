@@ -1,4 +1,4 @@
-package jaxed
+package jaxed.servlet
 
 /**
  * @author Bryce Anderson

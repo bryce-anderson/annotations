@@ -1,7 +1,7 @@
 package main
 
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-import jaxed.ResultRenderer
+import jaxed.servlet.ResultRenderer
 
 /**
  * @author Bryce Anderson
