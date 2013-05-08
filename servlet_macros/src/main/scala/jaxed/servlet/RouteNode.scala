@@ -30,7 +30,7 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
 
   protected val routes = new MutableList[Route]()
 
-  protected def runLeaves(context: ServletReqContext): Option[Any] = {
+  protected def searchLeaves(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
       val subcontext = context.subPath(subPath, params)
       def searchList(it: Iterator[Route]): Option[Any] = {
@@ -47,7 +47,7 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
   }
 
   override def handle(context: ServletReqContext): Option[Any] = {
-    val result = beforeFilter(context) orElse runLeaves(context)
+    val result = beforeFilter(context) orElse searchLeaves(context)
     afterFilter(context, result)
   }
 

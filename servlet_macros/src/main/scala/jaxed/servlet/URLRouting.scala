@@ -1,4 +1,4 @@
-package jaxed
+package jaxed.servlet
 
 /*
 This was lifted nearly entirely from the Scalatra project: pathPatternParsers.scala
@@ -6,6 +6,7 @@ This was lifted nearly entirely from the Scalatra project: pathPatternParsers.sc
 
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
+import jaxed._
 
 /**
  * A path pattern optionally matches a request path and extracts path

@@ -1,10 +1,9 @@
 package jaxed
-package servletmacros
+package servlet
 
 import org.specs2.mutable.Specification
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import javax.ws.rs.GET
-import jaxed.servlet.{RouteNode, DoneResult}
 
 /**
  * @author Bryce Anderson
@@ -13,10 +12,10 @@ import jaxed.servlet.{RouteNode, DoneResult}
 
 class ServletReqContextSpec extends Specification {
 
-  class MockNode extends RouteNode with MockRenderer
+  class MockNode extends RouteNode
 
   "Servlet Macros" should {
-    val mocContext = ServletReqContext("/foo/bar", Get, Map("one" -> "two"), null, null)
+    val mocContext = new ServletReqContext("/foo/bar", Get, Map("one" -> "two"), null, null)
     "Run a route" in {
       class Test {
         @GET
@@ -24,8 +23,8 @@ class ServletReqContextSpec extends Specification {
       }
 
        val node = new MockNode()
-       node.mapClass[Test]("foo/bar")
-      node.handle(mocContext) must_== Some(DoneResult("Hello"))
+       node.mapClass[Test]("/foo/bar")
+      node.handle(mocContext) must_== Some("Hello")
     }
 
     "Add a request" in {
@@ -35,8 +34,8 @@ class ServletReqContextSpec extends Specification {
       }
 
       val node = new MockNode()
-      node.mapClass[Test]("foo/bar")
-      node.handle(mocContext) must_== Some(DoneResult("Hello"))
+      node.mapClass[Test]("/foo/bar")
+      node.handle(mocContext) must_== Some("Hello")
     }
 
     "Add a response" in {
@@ -46,8 +45,8 @@ class ServletReqContextSpec extends Specification {
       }
 
       val node = new MockNode()
-      node.mapClass[Test]("foo/bar")
-      node.handle(mocContext) must_== Some(DoneResult("Hello"))
+      node.mapClass[Test]("/foo/bar")
+      node.handle(mocContext) must_== Some("Hello")
     }
   }
 
