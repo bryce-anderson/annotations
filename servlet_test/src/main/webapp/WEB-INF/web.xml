@@ -9,6 +9,7 @@
     <servlet>
         <servlet-name>HelloWorld</servlet-name>
         <servlet-class>main.Main</servlet-class>
+        <async-supported>true</async-supported>
     </servlet>
     <servlet-mapping>
         <servlet-name>HelloWorld</servlet-name>

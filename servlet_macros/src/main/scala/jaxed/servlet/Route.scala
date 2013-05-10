@@ -16,4 +16,5 @@ import jaxed.servlet.ServletReqContext
 
 trait Route {
   def handle(path: ServletReqContext): Option[Any]
+
 }

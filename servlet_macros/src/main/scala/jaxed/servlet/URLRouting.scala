@@ -12,7 +12,7 @@ import jaxed._
  * A path pattern optionally matches a request path and extracts path
  * parameters.
  */
-case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil) {
+case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil, reverse: (Map[String, String] => Option[(String, Map[String, String])])) { parent =>
   def apply(path: String): Option[(Params, String)] = {
     regex.findFirstMatchIn(path) map { m =>
       var multiParams = Map.empty[String, String]
@@ -29,10 +29,14 @@ case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil) {
     }
   }
 
-  def +(pathPattern: PathPattern): PathPattern = PathPattern(
-    new Regex(this.regex.toString + pathPattern.regex.toString),
-    this.captureGroupNames ::: pathPattern.captureGroupNames
-  )
+  def +(other: PathPattern): PathPattern = PathPattern(
+    new Regex(this.regex.toString + other.regex.toString),
+    this.captureGroupNames ::: other.captureGroupNames, { params: Map[String, String] =>
+    for {
+      (path, params) <- parent.reverse(params)
+      (otherPath, params) <- other.reverse(params)
+    } yield (path + otherPath, params)
+  })
 }
 
 /**
@@ -51,16 +55,35 @@ trait RegexPathPatternParser extends PathPatternParser with RegexParsers {
    * This parser gradually builds a regular expression.  Some intermediate
    * strings are not valid regexes, so we wait to compile until the end.
    */
-  protected case class PartialPathPattern(regex: String, captureGroupNames: List[String] = Nil)
-  {
-    def toPathPattern: PathPattern = {
-      PathPattern(regex.r, captureGroupNames)
+
+  protected case class PartialPathPattern(regex: String, captureGroupNames: List[String] = Nil) { parent =>
+
+    def toPathPattern(allowPartial: Boolean): PathPattern = {
+      PathPattern(("^" + regex + (if(allowPartial) "" else "$")).r, captureGroupNames, reverse)
     }
 
-    def +(other: PartialPathPattern): PartialPathPattern = PartialPathPattern(
+    def +(other: PartialPathPattern): PartialPathPattern = new PartialPathPattern(
       this.regex + other.regex,
-      this.captureGroupNames ::: other.captureGroupNames
-    )
+      this.captureGroupNames ::: other.captureGroupNames ) {
+
+      override def reverse: (Map[String, String] => Option[(String, Map[String, String])]) = { params: Map[String, String] =>
+        for {
+          (path, params) <- parent.reverse(params)
+          (otherPath, params) <- other.reverse(params)
+        } yield (path + otherPath, params)
+      }
+    }
+
+
+    def reverse: (Map[String, String] => Option[(String, Map[String, String])]) = {
+      if (captureGroupNames.isEmpty){ params:Map[String, String] => Some((regex, params)) }
+      else { params: Map[String, String] =>
+        val head = captureGroupNames.head
+        params.get(head).map {param =>
+          (param, params - head )
+        }
+      }
+    }
   }
 }
 
@@ -70,28 +93,21 @@ trait RegexPathPatternParser extends PathPatternParser with RegexParsers {
 class SinatraPathPatternParser extends RegexPathPatternParser {
   def apply(pattern: String, allowPartial: Boolean): PathPattern =
     parseAll(pathPattern, pattern) match {
-      case Success(pathPattern, _) =>
-        (PartialPathPattern("^") + pathPattern +
-          (if (allowPartial) PartialPathPattern("") else PartialPathPattern("$"))).toPathPattern
+      case Success(pathPattern, _) => pathPattern.toPathPattern(allowPartial)
       case _ =>
         throw new IllegalArgumentException("Invalid path pattern: " + pattern)
     }
 
   private def pathPattern = rep(token) ^^ (_.foldLeft(PartialPathPattern(""))(_+_))
 
-  private def token = splat | namedGroup | literal
+  private def token = splat | namedGroup | normalChar
 
   private def splat = "*" ^^^ PartialPathPattern("(.*?)", List("splat"))
 
   private def namedGroup = ":" ~> """\w+""".r ^^
     { groupName => PartialPathPattern("([^/?#]+)", List(groupName)) }
 
-  private def literal = metaChar | normalChar
-
-  private def metaChar = """[\.\+\(\)\$]""".r ^^
-    { c => PartialPathPattern("\\" + c) }
-
-  private def normalChar = ".".r ^^ { c => PartialPathPattern(c) }
+  private def normalChar = "[^:]+".r ^^ { c => PartialPathPattern(c) }
 }
 
 object SinatraPathPatternParser {
