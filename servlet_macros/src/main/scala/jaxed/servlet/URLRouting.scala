@@ -12,7 +12,8 @@ import jaxed._
  * A path pattern optionally matches a request path and extracts path
  * parameters.
  */
-case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil, reverse: (Map[String, String] => Option[(String, Map[String, String])])) { parent =>
+case class PathPattern(regex: Regex, captureGroupNames: List[String], reverse: ReverseBuilder) { parent =>
+
   def apply(path: String): Option[(Params, String)] = {
     regex.findFirstMatchIn(path) map { m =>
       var multiParams = Map.empty[String, String]
@@ -29,14 +30,21 @@ case class PathPattern(regex: Regex, captureGroupNames: List[String] = Nil, reve
     }
   }
 
-  def +(other: PathPattern): PathPattern = PathPattern(
-    new Regex(this.regex.toString + other.regex.toString),
-    this.captureGroupNames ::: other.captureGroupNames, { params: Map[String, String] =>
-    for {
-      (path, params) <- parent.reverse(params)
-      (otherPath, params) <- other.reverse(params)
-    } yield (path + otherPath, params)
-  })
+  def +(other: PathPattern): PathPattern = {
+    val parentStr = {
+      val parentStr = parent.regex.toString()
+      if (parentStr.endsWith("$")) parentStr.substring(0, parentStr.length-1) else parentStr
+    }
+    val otherStr = {
+      val otherStr = other.regex.toString()
+      if (otherStr.startsWith("^")) otherStr.substring(1) else otherStr
+    }
+
+    new PathPattern(new Regex(parentStr + otherStr),
+      parent.captureGroupNames ::: other.captureGroupNames,
+      params =>  PathPattern.combine(parent.reverse, other.reverse, params)
+    )
+  }
 }
 
 /**
@@ -58,30 +66,24 @@ trait RegexPathPatternParser extends PathPatternParser with RegexParsers {
 
   protected case class PartialPathPattern(regex: String, captureGroupNames: List[String] = Nil) { parent =>
 
-    def toPathPattern(allowPartial: Boolean): PathPattern = {
-      PathPattern(("^" + regex + (if(allowPartial) "" else "$")).r, captureGroupNames, reverse)
-    }
+    def toPathPattern(allowPartial: Boolean) = PathPattern(
+      ("^" + parent.regex + (if(allowPartial) "" else "$")).r,
+      parent.captureGroupNames,
+      parent.reverse
+    )
 
     def +(other: PartialPathPattern): PartialPathPattern = new PartialPathPattern(
-      this.regex + other.regex,
-      this.captureGroupNames ::: other.captureGroupNames ) {
+      parent.regex + other.regex,
+      parent.captureGroupNames ::: other.captureGroupNames ) {
 
-      override def reverse: (Map[String, String] => Option[(String, Map[String, String])]) = { params: Map[String, String] =>
-        for {
-          (path, params) <- parent.reverse(params)
-          (otherPath, params) <- other.reverse(params)
-        } yield (path + otherPath, params)
-      }
+      override def reverse(params: Map[String, String]) = PathPattern.combine(parent.reverse, other.reverse, params)
     }
 
-
-    def reverse: (Map[String, String] => Option[(String, Map[String, String])]) = {
-      if (captureGroupNames.isEmpty){ params:Map[String, String] => Some((regex, params)) }
-      else { params: Map[String, String] =>
+    def reverse(params: Map[String, String]): Option[String] = {
+      if (captureGroupNames.isEmpty) Some(regex)
+      else {
         val head = captureGroupNames.head
-        params.get(head).map {param =>
-          (param, params - head )
-        }
+        params.get(head)
       }
     }
   }
@@ -108,6 +110,17 @@ class SinatraPathPatternParser extends RegexPathPatternParser {
     { groupName => PartialPathPattern("([^/?#]+)", List(groupName)) }
 
   private def normalChar = "[^:]+".r ^^ { c => PartialPathPattern(c) }
+}
+
+object PathPattern {
+  def combine(parent: ReverseBuilder,
+              child: ReverseBuilder,
+              params: Map[String, String]) = {
+    for {
+      path <- parent(params)
+      otherPath <- child(params)
+    } yield path + otherPath
+  }
 }
 
 object SinatraPathPatternParser {

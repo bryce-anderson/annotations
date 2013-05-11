@@ -4,17 +4,30 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest, HttpServlet}
 
 import scala.language.experimental.macros
 import jaxed._
+import java.net.URL
 
 /**
  * @author Bryce Anderson
  *         Created on 4/19/13
  */
-abstract class AnnotationHandler extends HttpServlet
+class AnnotationHandler extends HttpServlet
       with RouteExceptionHandler
       with ResultRenderer
-      with DefaultResponses  { self =>
+      with DefaultResponses
+      with RouteNode { self =>
 
-  def rootNode: RouteNode
+
+
+  //protected val rootNode = new RouteNode(self, "")
+
+
+  //def handle(path: ServletReqContext): Option[Any] = rootNode.handle(path)
+
+  def parent: Route = throw new NoSuchElementException("Annotation Handler doesn't have a parent")
+
+  def path: String = ""
+
+  override def url(params: Map[String, String]): Option[String] = Some(getServletContext.getContextPath)
 
   // Virtual method of AbstractHandler
   override def service(req: HttpServletRequest, resp: HttpServletResponse) {
@@ -28,7 +41,7 @@ abstract class AnnotationHandler extends HttpServlet
     val rawPath = req.getRequestURI().substring(req.getContextPath().length())
     val context = new ServletReqContext(rawPath, method, EmptyParams, req, resp)
     try {
-      val result = rootNode.handle(context)
+      val result = handle(context)
       renderResponse(req, resp, result.getOrElse(on404NotFound(context)))
     } catch {
       case t: Throwable => handleException(t, context)

@@ -19,7 +19,10 @@ import scala.Some
  */
 
 
-class RouteNode(path: String = "") extends Route with Filter with PathBuilder { self =>
+trait RouteNode extends Route with Filter with PathBuilder { self =>
+
+  def parent: Route
+  def path: String
 
   private val pathPattern = buildPath( path match {
     case "" => ""
@@ -27,6 +30,8 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
     case path if path.startsWith("/") => path
     case path => "/" + path
   }, true)
+
+  def url(params: Map[String, String]) = PathPattern.combine(parent.url, pathPattern.reverse, params)
 
   protected val routes = new MutableList[Route]()
 
@@ -49,11 +54,22 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
   override def handle(context: ServletReqContext): Option[Any] =
     beforeFilter(context) orElse afterFilter(context, searchLeaves(context))
 
-  def addRoute(route: Route): self.type = { routes += route; self }
+  def newNode(newPath: String) = {
+    val newNode = new RouteNode {
+      def path = newPath
+      def parent = self
+    }
+    addRoute(newNode)
+    newNode
+  }
 
-  def addRouteLeaf(method: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): self.type = {
+  def addRoute(route: Route) { routes += route }
+
+  def addRouteLeaf(method: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): Route = {
     val pathPattern = buildPath(path, false)
     val route = new Route {
+      def url(params: Map[String, String]): Option[String] = PathPattern.combine(parent.url, pathPattern.reverse, params)
+
       def handle(context: ServletReqContext) = if (context.method == method) {
         pathPattern(context.path)
           .map { case (params, _) =>
@@ -62,18 +78,16 @@ class RouteNode(path: String = "") extends Route with Filter with PathBuilder { 
       } else None
     }
     addRoute(route)
+    route
   }
 
-  def mapClass[A](path: String): RouteNode = macro RouteNode.mapClass_impl[A]
+  def mapClass[A](path: String): Route = macro RouteNode.mapClass_impl[A]
 }
 
 object RouteNode {
 
-  def apply(path: String = "") = new RouteNode(path)
-
   type RouteContext = Context { type PrefixType = RouteNode }
   def mapClass_impl[A: c.WeakTypeTag](c: RouteContext) (path: c.Expr[String]) :c.Expr[RouteNode] =  {
-    import c.universe._
 
     val _c = c
     val servletBinding = new ServletBinding { self =>
@@ -95,11 +109,11 @@ object RouteNode {
       }
 
       // Make the implementation for route binding routes to RouteNodes
-      def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[RouteNode] = {
+      def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[Route] = {
         val paths = genMethodExprs[A, ServletReqContext] // List[(MethodSymbol, c.Expr[(ServletReqContext) => Any])]
 
-        paths.map { case (sym, f) => (sym.annotations.find(a => restTypes.exists(_ =:= a.tpe)).get.tpe, f) }
-          .foldLeft(node){ case (node, (reqTpe, f)) =>
+        val trees = paths.map { case (sym, f) =>
+          val reqTpe = sym.annotations.find(a => restTypes.exists(_ =:= a.tpe)).get.tpe
           val methodExpr = reqTpe match {
             case t if t =:= typeOf[GET] => reify(Get)
             case t if t =:= typeOf[POST] => reify(Post)
@@ -107,8 +121,18 @@ object RouteNode {
 
           reify {
             node.splice.addRouteLeaf(methodExpr.splice, path.splice)(f.splice)
-          }
+          }.tree
         }
+
+        trees match {
+          case h::Nil => c.Expr[Route](h)
+          case h::t => c.Expr[Route](Block(t, h))
+          case Nil =>
+            c.error(c.enclosingPosition, s"Class ${weakTypeOf[A].termSymbol.name.decoded} doesn't contain any annotations.")
+            ???
+        }
+
+
       }
     }
 
