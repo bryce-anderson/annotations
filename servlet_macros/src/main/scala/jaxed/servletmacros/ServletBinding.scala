@@ -23,9 +23,12 @@ trait ServletBinding extends RouteBinding { self =>
     case s if !getAnnotation[CookieParam](s).isEmpty =>
       val cookieName = getAnnotation[CookieParam](s).get.javaArgs(newTermName("value")).toString.replaceAll("\"", "")
       val defaultExpr = parentSymbol match {
-        case classSym: ClassSymbol => getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
-        case methSym: MethodSymbol => getDefaultParamExpr(symbol, symbol.name.encoded, self.instExpr, methSym.name.encoded, index)
+        case classSym: ClassSymbol =>
+          //getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
+          getDefaultParamExpr(symbol, symbol.name.encoded, Ident(classSym.companionSymbol), "$lessinit$greater", index)
+        case methSym: MethodSymbol => getDefaultParamExpr(symbol, symbol.name.encoded, self.instExpr.tree, methSym.name.encoded, index)
       }
+
       Some(reify(reqContextExpr.splice
         .getCookie(LIT(cookieName).splice)
         .map(primConvert(symbol.typeSignature).splice)
@@ -38,7 +41,7 @@ trait ServletBinding extends RouteBinding { self =>
   override def constructorBuilder(paramSym: Symbol, classSym: ClassSymbol, index: Int): Tree =
     reqRespTree(paramSym, classSym, index) getOrElse super.constructorBuilder(paramSym, classSym, index)
 
-  override def methodParamBuilder(paramSym: Symbol, methodSymbol: MethodSymbol, annotation: Type, index: Int): Tree =
-    reqRespTree(paramSym, methodSymbol, index) getOrElse super.methodParamBuilder(paramSym, methodSymbol, annotation, index)
+  override def methodParamBuilder(paramSym: Symbol, methodSymbol: MethodSymbol, index: Int): Tree =
+    reqRespTree(paramSym, methodSymbol, index) getOrElse super.methodParamBuilder(paramSym, methodSymbol, index)
 
 }

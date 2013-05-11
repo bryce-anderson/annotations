@@ -40,9 +40,9 @@ class TestClass3 {
   }
 }
 
-class WithConstrutor(bar: String = "Default") {
+class WithConstrutor(@QueryParam("bar") bar: String = "No query param for 'bar'") {
   @GET
-  def routeGet() = bar
+  def routeGet() = s"$bar"
 }
 
 class FutureTest {
@@ -53,7 +53,7 @@ class FutureTest {
 
 class GetCookieTest {
   @GET
-  def cookieRoute(@CookieParam("cookie") cookie: String = "None") = s"Got cookie '$cookie'"
+  def cookieRoute(@CookieParam("cookie") cook: String = "None") = s"Got cookie '$cook'"
 }
 
 class SetCookieTest {

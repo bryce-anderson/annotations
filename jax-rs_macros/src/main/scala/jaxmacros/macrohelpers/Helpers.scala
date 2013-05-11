@@ -61,12 +61,12 @@ trait Helpers { self =>
 
   def getAnnotation[T: TypeTag](sym: Symbol) = sym.annotations.find(_.tpe =:= typeOf[T])
 
-  def getDefaultParamExpr[T](p: Symbol, name: String, classExpr: c.Expr[T], methodName: String, paramIndex: Int) = {
+  def getDefaultParamExpr(p: Symbol, name: String, classTree: Tree, methodName: String, paramIndex: Int) = {
     p.annotations.find(_.tpe == typeOf[DefaultValue])
       .map(_.javaArgs.apply(newTermName("value")).toString.replaceAll("\"", ""))
       .map(PRIM(_, p.typeSignature))
       .orElse(p.asTerm.isParamWithDefault match {
-      case true =>  Some(getMethodDefault(classExpr.tree, methodName, paramIndex))
+      case true =>  Some(getMethodDefault(classTree, methodName, paramIndex))
       case false => None
     })
       .getOrElse(reify(throw new IllegalArgumentException(s"missing param: ${LIT(name).splice}")))
