@@ -6,7 +6,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
 import jaxed._
-import javax.ws.rs.{POST, GET}
+import javax.ws.rs.{DELETE, PUT, POST, GET}
 import jaxed.servletmacros._
 import scala.Some
 import scala.Some
@@ -31,9 +31,9 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
     case path => "/" + path
   }, true)
 
-  def url(params: Map[String, String]) = PathPattern.combine(parent.url, pathPattern.reverse, params)
-
   protected val routes = new MutableList[Route]()
+
+  def url(params: Map[String, String]) = PathPattern.combine(parent.url, pathPattern.reverse, params)
 
   protected def searchLeaves(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
@@ -63,12 +63,17 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
     newNode
   }
 
+  def mountBranch(branch: RouteBranch) {
+    addRoute(branch)
+    branch.mount(self)
+  }
+
   def addRoute(route: Route) { routes += route }
 
-  def addRouteLeaf(method: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): Route = {
+  def addLeafRoute(method: RequestMethod, path: String)(routeMethod: (ServletReqContext) => Any): Route = {
     val pathPattern = buildPath(path, false)
     val route = new Route {
-      def url(params: Map[String, String]): Option[String] = PathPattern.combine(parent.url, pathPattern.reverse, params)
+      def url(params: Map[String, String]): Option[String] = PathPattern.combine(self.url, pathPattern.reverse, params)
 
       def handle(context: ServletReqContext) = if (context.method == method) {
         pathPattern(context.path)
@@ -76,6 +81,20 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
           routeMethod(context.addParams(params))
         }
       } else None
+    }
+    addRoute(route)
+    route
+  }
+
+  def addClassRoute(path: String, routes: Iterable[(RequestMethod, ServletReqContext => Any)]): Route = {
+    val pathPattern = buildPath(path, false)
+
+    val route = new Route {
+      def handle(context: ServletReqContext): Option[Any] = pathPattern(context.path).flatMap { case (params, _) =>
+        routes.find(_._1 == context.method).map{ case (_, f) => f(context.addParams(params)) }
+      }
+
+      def url(params: Map[String, String]): Option[String] = PathPattern.combine(self.url, pathPattern.reverse, params)
     }
     addRoute(route)
     route
@@ -96,7 +115,6 @@ object RouteNode {
 
       import c.universe._
 
-
       // Receives the expr representing the execution of the route, right after class instancing
       override def routeExecutionExpr(expr: c.Expr[Any]): c.Expr[Any] = weakTypeOf[A] match {
         case t if t <:< typeOf[Filter] =>
@@ -112,26 +130,22 @@ object RouteNode {
       def bindClass_impl[A: c.WeakTypeTag](node: c.Expr[RouteNode], path: c.Expr[String]): c.Expr[Route] = {
         val paths = genMethodExprs[A, ServletReqContext] // List[(MethodSymbol, c.Expr[(ServletReqContext) => Any])]
 
-        val trees = paths.map { case (sym, f) =>
+        val methodsList = Apply(
+          Select(Ident(newTermName("List")), newTermName("apply")),
+          paths.map { case (sym, f) =>
           val reqTpe = sym.annotations.find(a => restTypes.exists(_ =:= a.tpe)).get.tpe
           val methodExpr = reqTpe match {
-            case t if t =:= typeOf[GET] => reify(Get)
-            case t if t =:= typeOf[POST] => reify(Post)
+            case t if t =:= typeOf[GET]     => reify(Get)
+            case t if t =:= typeOf[POST]    => reify(Post)
+            case t if t =:= typeOf[PUT]     => reify(Put)
+            case t if t =:= typeOf[DELETE]  => reify(Delete)
           }
+          reify{(methodExpr.splice, f.splice)}.tree
+        })
 
-          reify {
-            node.splice.addRouteLeaf(methodExpr.splice, path.splice)(f.splice)
-          }.tree
+        reify {
+          node.splice.addClassRoute(path.splice, c.Expr[List[(RequestMethod, ServletReqContext => Any)]](methodsList).splice)
         }
-
-        trees match {
-          case h::Nil => c.Expr[Route](h)
-          case h::t => c.Expr[Route](Block(t, h))
-          case Nil =>
-            c.error(c.enclosingPosition, s"Class ${weakTypeOf[A].termSymbol.name.decoded} doesn't contain any annotations.")
-            ???
-        }
-
 
       }
     }

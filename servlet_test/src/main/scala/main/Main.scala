@@ -1,10 +1,16 @@
 package main
 
-import jaxed.servlet.{RouteNode, AnnotationHandler}
+import jaxed.servlet.{RouteBranch, AnnotationHandler}
 import javax.ws.rs.GET
+import jaxed.Get
 
+object MainBranch extends RouteBranch("/branch") {
+  addLeafRoute(Get, ""){ _ => "I'm a mounted BranchNode"}
+}
 
 class Main extends AnnotationHandler {
+  mountBranch(MainBranch)
+
   class RerouteSrc {
     @GET def main = {
       <html><body>

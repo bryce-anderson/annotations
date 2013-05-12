@@ -16,16 +16,9 @@ class AnnotationHandler extends HttpServlet
       with DefaultResponses
       with RouteNode { self =>
 
-
-
-  //protected val rootNode = new RouteNode(self, "")
-
-
-  //def handle(path: ServletReqContext): Option[Any] = rootNode.handle(path)
-
   def parent: Route = throw new NoSuchElementException("Annotation Handler doesn't have a parent")
 
-  def path: String = ""
+  def path = ""
 
   override def url(params: Map[String, String]): Option[String] = Some(getServletContext.getContextPath)
 
