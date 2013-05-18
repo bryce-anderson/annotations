@@ -16,9 +16,12 @@ class AnnotationHandler extends HttpServlet
       with DefaultResponses
       with RouteNode { self =>
 
-  def parent: Route = throw new NoSuchElementException("Annotation Handler doesn't have a parent")
+  def getParent() = throw new NoSuchElementException("Annotation Handler doesn't have a getParent")
+  def setParent(node: RouteNode) = throw new NoSuchElementException("Annotation Handler doesn't have a getParent")
 
   def path = ""
+
+  override lazy val pathParamNames: List[String] = Nil
 
   override def url(params: Map[String, String]): Option[String] = Some(getServletContext.getContextPath)
 

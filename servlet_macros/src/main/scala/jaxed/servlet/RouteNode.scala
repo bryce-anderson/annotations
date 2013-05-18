@@ -1,16 +1,12 @@
 package jaxed.servlet
 
-import scala.collection.mutable.MutableList
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
+import scala.collection.mutable.ListBuffer
 
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
 import jaxed._
 import javax.ws.rs.{DELETE, PUT, POST, GET}
 import jaxed.servletmacros._
-import scala.Some
-import scala.Some
-import jaxed.servlet._
 import scala.Some
 
 /**
@@ -21,7 +17,8 @@ import scala.Some
 
 trait RouteNode extends Route with Filter with PathBuilder { self =>
 
-  def parent: Route
+  def getParent(): RouteNode
+  private[servlet] def setParent(node: RouteNode): Unit
   def path: String
 
   private val pathPattern = buildPath( path match {
@@ -31,9 +28,11 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
     case path => "/" + path
   }, true)
 
-  protected val routes = new MutableList[Route]()
+  private val routes = new ListBuffer[Route]()
 
-  def url(params: Map[String, String]) = PathPattern.combine(parent.url, pathPattern.reverse, params)
+  lazy val pathParamNames: List[String] = pathPattern.captureGroupNames:::getParent.pathParamNames
+
+  def url(params: Map[String, String]) = PathPattern.combine(getParent.url, pathPattern.reverse, params)
 
   protected def searchLeaves(context: ServletReqContext): Option[Any] = {
     pathPattern(context.path).flatMap{ case (params, subPath) =>
@@ -54,18 +53,16 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
   override def handle(context: ServletReqContext): Option[Any] =
     beforeFilter(context) orElse afterFilter(context, searchLeaves(context))
 
-  def newNode(newPath: String) = {
-    val newNode = new RouteNode {
-      def path = newPath
-      def parent = self
-    }
+  def newNode(newPath: String): RouteNode = {
+    val newNode = new RouteBranch(path)
+    newNode.setParent(self)
     addRoute(newNode)
     newNode
   }
 
-  def mountBranch(branch: RouteBranch) {
+  def mountBranch(branch: RouteNode) {
     addRoute(branch)
-    branch.mount(self)
+    branch.setParent(self)
   }
 
   def addRoute(route: Route) { routes += route }
@@ -74,6 +71,8 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
     val pathPattern = buildPath(path, false)
     val route = new Route {
       def url(params: Map[String, String]): Option[String] = PathPattern.combine(self.url, pathPattern.reverse, params)
+
+      lazy val pathParamNames: List[String] = pathPattern.captureGroupNames:::self.pathParamNames
 
       def handle(context: ServletReqContext) = if (context.method == method) {
         pathPattern(context.path)
@@ -90,6 +89,8 @@ trait RouteNode extends Route with Filter with PathBuilder { self =>
     val pathPattern = buildPath(path, false)
 
     val route = new Route {
+      lazy val pathParamNames: List[String] = pathPattern.captureGroupNames:::self.pathParamNames
+
       def handle(context: ServletReqContext): Option[Any] = pathPattern(context.path).flatMap { case (params, _) =>
         routes.find(_._1 == context.method).map{ case (_, f) => f(context.addParams(params)) }
       }
@@ -146,14 +147,13 @@ object RouteNode {
         reify {
           node.splice.addClassRoute(path.splice, c.Expr[List[(RequestMethod, ServletReqContext => Any)]](methodsList).splice)
         }
-
       }
     }
 
     val expr = servletBinding.bindClass_impl[A](c.prefix.asInstanceOf[servletBinding.c.Expr[RouteNode]],
       path.asInstanceOf[servletBinding.c.Expr[String]])
 
-    println(s"DEBUG: -----------------------------------\n $expr")
+    //println(s"DEBUG: -----------------------------------\n $expr")
     expr.asInstanceOf[c.Expr[RouteNode]]
   }
 

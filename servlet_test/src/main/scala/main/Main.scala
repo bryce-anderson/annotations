@@ -14,7 +14,8 @@ class Main extends AnnotationHandler {
   class RerouteSrc {
     @GET def main = {
       <html><body>
-        <a href={route2.url(Map("money" -> "2.33432")).get}>Go to Dest</a>
+        <a href={route2.url(Map("money" -> "2.33432")).get}>Go to Dest</a><br/>
+        Got {route2.pathParamNames.toString()}
       </body></html>
     }
   }

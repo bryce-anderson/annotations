@@ -14,7 +14,7 @@ class ServletReqContextSpec extends Specification {
 
   class MockNode extends RouteNode {
     def path = ""
-    def parent = new Route {
+    def getParent = new Route {
       def handle(path: ServletReqContext): Option[Any] = throw new NotImplementedError("Method 'handle' should not be called!")
       def url(params: Map[String, String]): Option[String] = Some("http://test.com")
     }

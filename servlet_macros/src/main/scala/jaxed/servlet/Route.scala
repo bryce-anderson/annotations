@@ -17,4 +17,5 @@ import jaxed.servlet.ServletReqContext
 trait Route {
   def handle(path: ServletReqContext): Option[Any]
   def url(params: Map[String, String] = Map.empty[String, String]): Option[String]
+  def pathParamNames: List[String]
 }

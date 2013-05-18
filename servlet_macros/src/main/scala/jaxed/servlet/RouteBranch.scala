@@ -9,10 +9,10 @@ class RouteBranch(val path: String) extends RouteNode { self =>
 
   private var myParent: RouteNode = null
 
-  private[servlet] def mount(newParent: RouteNode) = myParent match {
+  private[servlet] def setParent(newParent: RouteNode) = myParent match {
     case null => myParent = newParent
-    case parent => sys.error(s"${self.getClass.getName} already mounted.")
+    case parent => sys.error(s"${self.getClass.getName} already mounted to RouteNode with path ${parent.path}.")
   }
 
-  def parent = Option(myParent).getOrElse(sys.error(s"RouteBranch at '$path' hasn't been mounted."))
+  def getParent() = Option(myParent).getOrElse(sys.error(s"RouteBranch at '$path' hasn't been mounted."))
 }

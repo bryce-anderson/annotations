@@ -34,7 +34,6 @@ trait RouteBinding extends macrohelpers.Helpers { self =>
 
     if (paramSym.annotations.exists(_.tpe =:= typeOf[QueryParam])) {
       val queryKey = getAnnotation[QueryParam](paramSym)
-        .map{i => println(s"What are we: ${i.javaArgs}"); i}
         .get.javaArgs.get(newTermName("value"))
         .map(_.toString.replaceAll("\"", ""))
         .getOrElse("")       // Will throw an error during compilation

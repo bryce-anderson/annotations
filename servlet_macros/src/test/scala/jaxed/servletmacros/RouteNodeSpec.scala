@@ -1,7 +1,7 @@
 package jaxed.servletmacros
 
 import org.specs2.mutable.Specification
-import jaxed.servlet.{RouteBranch, AnnotationHandler, ServletReqContext}
+import jaxed.servlet.{AnnotationHandler, ServletReqContext}
 import jaxed.Get
 
 /**
