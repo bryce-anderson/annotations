@@ -1,13 +1,20 @@
-# annotations — Scala macro based, JAX-RS inspired servlet generation. #
+# annotations — Scala macro based, JAX-RS inspired route generation. #
 
 ## Build & run ##
-sbt revolver plugin required in sbt build, remove otherwise.
-sbt
-project test
-re-start
 
-* Note there is a problem with sbt and the macro generation when changing the classes which are mapped. This can be fixed by commenting out the binding code, eg mapClass[A]("path"), compiling, and uncommenting. It would probably work with touch as well.
+```sh
+$ sbt
+ project servlet_test
+ container:start
+```
+
+* Use JAX-RS style annotations (in fact, use their annotations) to turn plain scala classes into routes
+* All compile time for no reflection overhead
+* Automatic type conversion from string parameters other primitive types with ability to add complex conversion
+* Extensible- Macro implementations based on traits that can be overridden and extended
+
+Works with Scalatra and has a default servlet routing system.
 
 ## Contact ##
 
-- bryce.anderson22ATgmail.com
+- bryce.anderson22@gmail.com
