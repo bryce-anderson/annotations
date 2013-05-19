@@ -6,6 +6,7 @@ import jaxmacros.RouteBinding
 import scala.reflect.macros.Context
 import javax.ws.rs.{CookieParam, POST, GET}
 import jaxed.servlet.ServletReqContext
+import javax.servlet.{ServletConfig, ServletContext}
 
 /**
  * @author Bryce Anderson
@@ -20,13 +21,14 @@ trait ServletBinding extends RouteBinding { self =>
   private def reqRespTree(symbol: Symbol, parentSymbol: Symbol, index: Int) = symbol match {
     case s if s.typeSignature =:= typeOf[HttpServletRequest] => Some(reify(reqContextExpr.splice.req).tree)
     case s if s.typeSignature =:= typeOf[HttpServletResponse]=> Some(reify(reqContextExpr.splice.resp).tree)
+    case s if s.typeSignature =:= typeOf[ServletContext] => Some(reify(reqContextExpr.splice.req.getServletContext).tree)
     case s if !getAnnotation[CookieParam](s).isEmpty =>
       val cookieName = getAnnotation[CookieParam](s).get.javaArgs(newTermName("value")).toString.replaceAll("\"", "")
       val defaultExpr = parentSymbol match {
         case classSym: ClassSymbol =>
-          //getMethodDefault(Ident(classSym.companionSymbol), "$lessinit$greater", index)
           getDefaultParamExpr(symbol, symbol.name.encoded, Ident(classSym.companionSymbol), "$lessinit$greater", index)
-        case methSym: MethodSymbol => getDefaultParamExpr(symbol, symbol.name.encoded, self.instExpr.tree, methSym.name.encoded, index)
+        case methSym: MethodSymbol =>
+          getDefaultParamExpr(symbol, symbol.name.encoded, self.instExpr.tree, methSym.name.encoded, index)
       }
 
       Some(reify(reqContextExpr.splice

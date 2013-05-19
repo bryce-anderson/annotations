@@ -1,4 +1,4 @@
-package jaxed.servletmacros
+package jaxed.servlet
 
 import org.specs2.mutable.Specification
 import jaxed.servlet.{AnnotationHandler, ServletReqContext}
@@ -13,7 +13,7 @@ class RouteNodeSpec extends Specification {
 
   def handler = {
     new AnnotationHandler {
-      object Branch extends RouteBranch("/branch") {
+      object Branch extends MockNode("/branch") {
         val route = addLeafRoute(Get, "/leaf") { _ => "Leaf1"}
       }
 

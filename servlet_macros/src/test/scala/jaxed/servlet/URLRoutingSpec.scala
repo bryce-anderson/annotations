@@ -1,4 +1,4 @@
-package jaxed.servletmacros
+package jaxed.servlet
 
 import org.specs2.mutable.Specification
 import jaxed.servlet.SinatraPathPatternParser
