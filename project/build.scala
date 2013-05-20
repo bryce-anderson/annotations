@@ -33,9 +33,7 @@ object MyBuild extends Build {
   lazy val macros: Project = Project(
     "jax-rs_macros",
     file("jax-rs_macros"),
-    settings = buildSettings ++ macroSettings ++ Seq (
-      //libraryDependencies += rl
-    )
+    settings = buildSettings ++ macroSettings
   ) dependsOn(base)
   
   lazy val servletMacros: Project = Project(
