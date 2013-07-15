@@ -6,4 +6,6 @@ package jaxed
  */
 package object servlet {
   type ReverseBuilder = Map[String, String] => Option[String]
+
+  case class Redirect(url: String)
 }
